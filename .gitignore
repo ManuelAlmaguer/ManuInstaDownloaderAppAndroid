@@ -1,0 +1,36 @@
+# Android / Gradle
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Kotlin / Java
+*.class
+*.log
+
+# Server runtime data (never commit downloaded media or job state)
+server/downloads/*
+!server/downloads/.gitkeep
+server/data/*
+!server/data/.gitkeep
+server/logs/*
+!server/logs/.gitkeep
+server/config.php
+
+# Legacy web runtime data
+web/downloads/*
+!web/downloads/.gitkeep
+
+# Release artifacts are kept on purpose (see release/README.md)
+!release/*.apk

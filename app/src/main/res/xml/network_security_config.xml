@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ReelDrop talks to a *local* server (Termux on the same phone, or a PC on the LAN)
+  over plain HTTP, so cleartext is allowed. Traffic content is protected by the
+  optional API token (see server/config.example.php).
+
+  If you never use http:// servers, flip cleartextTrafficPermitted to false.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,9 @@
+# Apache configuration (only needed if you host the server on a VPS with Apache).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>
+
+# Never expose the internal state folders.
+<FilesMatch "\.(json|log|jks)$">
+    Require all denied
+</FilesMatch>
