@@ -43,7 +43,7 @@ El nombre visible actual es **Manu ReelDrop**. Se mantiene el paquete Android y 
 | `app/` | Código fuente de la app Android (Kotlin, Jetpack Compose, Material 3). |
 | `server/` | Servidor PHP + yt-dlp para Termux (cola de trabajos, progreso, biblioteca, miniaturas). |
 | `docs/` | Documentación detallada: API, servidor y arquitectura. |
-| `release/` | APK de referencia listos para instalar (`ReelDrop-v1.0.0.apk`). |
+| `release/` | APK v1.1.0 listos para instalar y referencia histórica v1.0.0. |
 | `HANDOFF.md` | Estado del proyecto, decisiones y siguientes pasos. |
 
 El servidor es compatible con el `api.php` original de la web: puedes actualizar la carpeta y
@@ -238,7 +238,7 @@ petición (`X-Api-Token`). Si usas `http://` en un host público, la app te avis
 
 ### Opción rápida: APK ya compilado
 
-1. Descarga `release/ReelDrop-v1.0.0.apk` (también está en *Releases* del repositorio).
+1. Descarga `release/ManuReelDrop-v1.1.0.apk` (la v1.0.0 se conserva como referencia histórica).
 2. Ábrelo en el móvil y permite **instalar apps de origen desconocido** cuando lo pida.
 3. Al abrir la app por primera vez te pedirá los permisos necesarios.
 

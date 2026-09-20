@@ -35,7 +35,7 @@ notificaciones, temas y configuración avanzada.
 * **Nombre visible:** Manu ReelDrop. Se conserva el paquete `com.manu.reeldrop` y la ruta
   `Movies/ReelDrop` para compatibilidad.
 * **Paquete Android:** `com.manu.reeldrop` (debug: `com.manu.reeldrop.debug`).
-* **Versión de código:** 1.1.0 (versionCode 2); los APK incluidos siguen siendo la referencia 1.0.0.
+* **Versión de código:** 1.1.0 (versionCode 2); los APK v1.1.0 se generan en CI y se conservan junto a la referencia 1.0.0.
 * **Autor:** Manuel Almaguer Sosa · manu004@atomicmail.io.
 
 ---
@@ -47,8 +47,8 @@ notificaciones, temas y configuración avanzada.
 | Análisis de la web original (zip) | Hecho (index.php, api.php, style.css, app.js) |
 | Proyecto Android completo | Hecho (≈40 archivos Kotlin, recursos, temas, tests) |
 | Servidor PHP 2.0 con cola de trabajos | Hecho (api.php, lib/*, panel web, instalador) |
-| APK debug compilado y verificado | Referencia existente v1.0.0; la build 1.1.0 queda para CI/Android SDK |
-| APK release firmado | Referencia 1.0.0 en `release/`; publicar 1.1.0 tras compilar con SDK/CI |
+| APK debug compilado y verificado | `release/ManuReelDrop-v1.1.0-debug.apk`, generado por CI |
+| APK release firmado | `release/ManuReelDrop-v1.1.0.apk`, generado por CI; se conserva la referencia 1.0.0 |
 | README + docs + HANDOFF | Hecho |
 | Publicado en `main` | Hecho (ver historial de commits) |
 
@@ -127,7 +127,7 @@ curl "http://127.0.0.1:8080/api.php?action=health"
 6. **Widget de Android** con últimas descargas y acceso rápido.
 7. **Estadísticas** en *Acerca de*: total descargado, velocidad media, tiempo ahorrado.
 8. **Tests de instrumentación** (Compose UI tests) para home, cola y biblioteca.
-9. **Publicar el APK 1.1.0** generado por CI como nueva release cuando se valide en un móvil.
+9. **Publicar el APK 1.1.0** generado por CI como nueva release de GitHub cuando se valide en un móvil.
 10. **Repaso de textos**: ya hay `values` (inglés) y `values-es`; revisar traducciones nuevas.
 
 ---

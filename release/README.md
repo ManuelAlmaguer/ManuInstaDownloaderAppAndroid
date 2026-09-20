@@ -1,12 +1,14 @@
 # APK de Manu ReelDrop
 
-Los APK incluidos aquí son la referencia v1.0.0. El código actual declara la versión 1.1.0;
-la nueva build debe generarse con Android SDK/CI antes de sustituir estos binarios.
+Los APK v1.1.0 fueron generados y verificados por GitHub Actions. La versión 1.0.0 se conserva
+como referencia para instalaciones anteriores.
 
 | Archivo | Para qué |
 |---|---|
-| `ReelDrop-v1.0.0.apk` | Versión de release, firmada. Es la recomendada para instalar. |
-| `ReelDrop-v1.0.0-debug.apk` | Build de depuración (más pesada). Útil para probar cambios antes de subirlos. |
+| `ManuReelDrop-v1.1.0.apk` | Versión de release, firmada. Es la recomendada para instalar. |
+| `ManuReelDrop-v1.1.0-debug.apk` | Build de depuración (más pesada). Útil para probar cambios. |
+| `ReelDrop-v1.0.0.apk` | Release histórica conservada para instalaciones anteriores. |
+| `ReelDrop-v1.0.0-debug.apk` | Debug histórico conservado para comparación. |
 
 ## Instalar en el móvil
 
