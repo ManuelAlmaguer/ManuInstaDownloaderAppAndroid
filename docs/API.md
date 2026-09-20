@@ -1,4 +1,4 @@
-# API del servidor ReelDrop
+# API del servidor Manu ReelDrop
 
 Base: `http://<host>:<puerto>/api.php`
 
@@ -26,8 +26,8 @@ Con token incorrecto: `401 {"ok":false,"error":"Token de API incorrecto o ausent
 ```json
 {
   "ok": true,
-  "app": "ReelDrop Server",
-  "version": "2.0.0",
+  "app": "Manu ReelDrop Server",
+  "version": "2.1.0",
   "ytdlp": "/data/data/com.termux/files/usr/bin/yt-dlp",
   "ytdlp_version": "2025.09.05",
   "ffmpeg": true,
@@ -48,7 +48,11 @@ espacio libre y el diagnóstico.
 
 ### POST `?action=job-create`
 
-Cuerpo: `{"url": "https://www.instagram.com/reel/…", "quality": "best|1080|720|480|audio"}`
+Cuerpo: `{"url": "https://www.youtube.com/watch?v=…", "quality": "best|1080|720|480|audio"}`
+
+Se aceptan hosts de Instagram, YouTube (`youtube.com`, `youtu.be`) y Facebook
+(`facebook.com`, `fb.watch`). El servidor vuelve a validar la lista configurada en
+`allowed_hosts` para evitar destinos arbitrarios.
 
 Respuesta:
 
@@ -76,7 +80,7 @@ Respuesta:
 }
 ```
 
-Errores: `400` si la URL no es de Instagram, `503` si falta yt-dlp, `500` si no se puede
+Errores: `400` si la URL no pertenece a una plataforma permitida, `503` si falta yt-dlp, `500` si no se puede
 arrancar el worker.
 
 ### GET `?action=job&id=<id>`
@@ -168,6 +172,25 @@ Devuelve un JPEG: usa el `data/thumbs/<archivo>.jpg` cacheado o lo genera con ff
 
 Borra `.part`, `.ytdl`, `.tmp`, `.info.json` y, si `retention_days > 0`, los archivos más
 antiguos. Devuelve `{"ok":true,"deleted":3,"bytes":15728640}`.
+
+### GET `?action=temporary`
+
+Lista los residuos que yt-dlp puede dejar mientras descarga. Solo incluye ficheros con nombre
+seguro y extensiones `.part`, `.ytdl`, `.tmp`, `.part-Frag*` o `.info.json`:
+
+```json
+{
+  "ok": true,
+  "items": [
+    {"file": "video.mp4.part", "size": 524288, "mtime": 1789792527, "kind": "Descarga parcial"}
+  ]
+}
+```
+
+### POST `?action=temporary-delete` con `{"file": "…"}`
+
+Elimina un temporal individual después de comprobar que pertenece a la carpeta `downloads` y
+que su nombre coincide con uno de los tipos permitidos.
 
 ---
 

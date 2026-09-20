@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import com.manu.reeldrop.core.Constants
 import com.manu.reeldrop.data.local.SettingsRepository
 import java.io.File
 
@@ -23,7 +24,7 @@ object DeviceDownloads {
         val target = Uri.fromFile(File(Environment.DIRECTORY_MOVIES, "ReelDrop/$fileName"))
         val request = DownloadManager.Request(Uri.parse(url))
             .setTitle(fileName)
-            .setDescription("Guardado por ReelDrop")
+            .setDescription("Guardado por ${Constants.APP_NAME}")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)

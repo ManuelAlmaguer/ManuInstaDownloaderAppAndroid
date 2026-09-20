@@ -24,9 +24,13 @@ function reeldrop_config(): array
         'cookies_file' => '',
         'default_quality' => 'best',
         'retention_days' => 0,
-        'allowed_hosts' => ['instagram.com', 'instagr.am', 'ig.me'],
+        'allowed_hosts' => [
+            'instagram.com', 'instagr.am', 'ig.me',
+            'youtube.com', 'youtu.be', 'youtube-nocookie.com',
+            'facebook.com', 'fb.watch',
+        ],
         'stale_job_seconds' => 45,
-        'app_version' => '2.0.0',
+        'app_version' => '2.1.0',
     ];
 
     $file = dirname(__DIR__) . '/config.php';
@@ -39,6 +43,12 @@ function reeldrop_config(): array
     }
 
     $config = array_merge($defaults, $user);
+    // Older config.php files only listed Instagram. Keep any custom entries, but always
+    // include the first-party platforms supported by this release during the migration.
+    $config['allowed_hosts'] = array_values(array_unique(array_merge(
+        (array) $defaults['allowed_hosts'],
+        (array) ($user['allowed_hosts'] ?? []),
+    )));
     return $config;
 }
 

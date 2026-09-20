@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manu ReelDrop · pestañas</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root { --bg:#080910; --panel:#11131d; --card:#171a26; --muted:#9295ae; --text:#f3f1fa; --purple:#a855f7; --pink:#ec4899; --orange:#f97316; --green:#34d399; --line:rgba(255,255,255,.09); }
+    body { margin:0; min-height:100vh; color:var(--text); background:radial-gradient(circle at 50% -15%, rgba(168,85,247,.24), transparent 36%), var(--bg); font-family:Inter,-apple-system,"Segoe UI",sans-serif; }
+    header { padding:34px 48px 24px; text-align:center; }
+    h1 { margin:0; font-size:30px; letter-spacing:-.04em; background:linear-gradient(110deg,#fff,#d9c2ff 55%,#ffb7dc); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    header p { margin:8px 0 0; color:var(--muted); font-size:14px; }
+    .sheet { max-width:1460px; margin:0 auto; padding:0 34px 42px; display:grid; grid-template-columns:repeat(4, 1fr); gap:22px; }
+    .phone { height:690px; padding:9px; border:1px solid rgba(255,255,255,.12); border-radius:38px; background:#05060b; box-shadow:0 28px 62px -26px #000, 0 0 0 6px rgba(255,255,255,.02) inset; }
+    .screen { height:100%; overflow:hidden; border-radius:30px; background:linear-gradient(180deg,rgba(22,20,35,.98),rgba(9,11,17,.98)); display:flex; flex-direction:column; }
+    .status { display:flex; justify-content:space-between; padding:12px 16px 4px; font-size:10px; color:#c8c9d7; }
+    .body { padding:12px 14px 0; display:flex; flex:1; flex-direction:column; gap:12px; min-height:0; }
+    .top { display:flex; align-items:center; gap:9px; }
+    .logo { width:39px; height:39px; flex:none; display:grid; place-items:center; border-radius:13px; background:linear-gradient(135deg,var(--purple),var(--pink) 55%,var(--orange)); box-shadow:0 9px 20px -12px var(--pink); font-size:20px; font-weight:800; }
+    .top strong { font-size:17px; }
+    .top small { display:block; color:var(--muted); margin-top:2px; font-size:9px; }
+    .cloud { margin-left:auto; padding:5px 8px; border-radius:99px; color:var(--green); background:rgba(52,211,153,.13); font-size:9px; }
+    .card { padding:12px; border:1px solid rgba(168,85,247,.18); border-radius:17px; background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.025)); box-shadow:0 16px 30px -25px #000; }
+    .label { margin-bottom:7px; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.09em; }
+    .input { padding:11px; border:1px solid rgba(236,72,153,.42); border-radius:12px; color:#ecebf4; background:rgba(0,0,0,.28); font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 0 0 4px rgba(168,85,247,.1); }
+    .chips { display:flex; gap:6px; overflow:hidden; }
+    .chip { padding:7px 8px; border:1px solid var(--line); border-radius:10px; color:#c7c8d5; font-size:9px; white-space:nowrap; }
+    .chip.on { border-color:rgba(168,85,247,.65); color:#e1caff; background:rgba(168,85,247,.2); }
+    .button { margin-top:10px; padding:12px; border-radius:12px; text-align:center; font-size:11px; font-weight:700; background:linear-gradient(110deg,var(--purple),var(--pink) 55%,var(--orange)); box-shadow:0 11px 24px -13px var(--pink); }
+    .ok { margin-top:8px; padding:8px; border-radius:10px; color:var(--green); background:rgba(52,211,153,.12); font-size:9px; }
+    .row { display:flex; align-items:center; gap:10px; }
+    .grow { flex:1; min-width:0; }
+    .ring { width:56px; height:56px; flex:none; display:grid; place-items:center; border:6px solid rgba(255,255,255,.1); border-top-color:var(--pink); border-right-color:var(--orange); border-radius:50%; font-size:11px; font-weight:700; }
+    .title { font-size:12px; font-weight:700; }
+    .sub { margin-top:4px; color:var(--muted); font-size:9px; line-height:1.35; }
+    .progress { height:7px; margin-top:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+    .progress i { display:block; height:100%; width:68%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--pink),var(--orange)); }
+    .statrow { display:flex; gap:7px; }
+    .stat { flex:1; padding:9px; border-radius:11px; background:rgba(255,255,255,.06); }
+    .stat b { display:block; font-size:15px; }
+    .stat span { color:var(--muted); font-size:8px; }
+    .sectionhead { display:flex; justify-content:space-between; align-items:end; }
+    .sectionhead h2 { margin:0; font-size:20px; }
+    .sectionhead small { color:var(--muted); font-size:9px; }
+    .filter { display:flex; gap:6px; overflow:hidden; }
+    .filter span { padding:7px 9px; border-radius:99px; background:rgba(255,255,255,.06); color:var(--muted); font-size:8px; white-space:nowrap; }
+    .filter .on { color:#e3ccff; background:rgba(168,85,247,.22); }
+    .item { display:flex; align-items:center; gap:9px; padding:10px; border:1px solid var(--line); border-radius:13px; background:rgba(255,255,255,.045); }
+    .thumb { width:42px; height:52px; flex:none; display:grid; place-items:center; border-radius:10px; background:linear-gradient(135deg,rgba(168,85,247,.55),rgba(236,72,153,.3)); font-size:18px; }
+    .item strong { display:block; max-width:155px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; }
+    .item small { display:block; margin-top:4px; color:var(--muted); font-size:8px; }
+    .trash { margin-left:auto; color:#f87171; font-size:14px; }
+    .notice { padding:10px; border-left:3px solid var(--purple); border-radius:10px; color:#cbc7d8; background:rgba(168,85,247,.1); font-size:9px; line-height:1.45; }
+    .themegrid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
+    .theme { padding:7px; border:1px solid var(--line); border-radius:10px; font-size:8px; color:var(--muted); }
+    .theme i { display:block; height:18px; margin-bottom:5px; border-radius:7px; background:linear-gradient(100deg,var(--purple),var(--pink),var(--orange)); }
+    .theme:nth-child(2) i { background:linear-gradient(100deg,#38bdf8,#60a5fa,#a5b4fc); }
+    .theme:nth-child(3) i { background:linear-gradient(100deg,#34d399,#22d3ee,#8b5cf6); }
+    .theme:nth-child(4) i { background:linear-gradient(100deg,#cbd5e1,#64748b,#334155); }
+    .folder { margin-top:auto; }
+    .nav { display:flex; justify-content:space-around; padding:10px 4px 15px; border-top:1px solid var(--line); background:#11131d; }
+    .nav span { color:#777b95; text-align:center; font-size:8px; }
+    .nav .active { color:#c89bff; }
+    .nav b { display:block; margin-bottom:4px; font-size:16px; }
+    @media (max-width:1100px) { .sheet { grid-template-columns:repeat(2, minmax(260px, 340px)); justify-content:center; } }
+    @media (max-width:650px) { header { padding:24px 16px; } .sheet { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header><h1>Manu ReelDrop</h1><p>Maqueta visual de las pestañas principales · versión 1.1.0</p></header>
+  <main class="sheet">
+    <section class="phone"><div class="screen"><div class="status"><span>9:41</span><span>▮▮▮　⌁　▰</span></div><div class="body">
+      <div class="top"><div class="logo">↓</div><div><strong>Manu ReelDrop</strong><small>Descarga vídeos a tu servidor</small></div><div class="cloud">● 38 ms</div></div>
+      <div class="card"><div class="input">↗　https://www.youtube.com/shorts/ABC123</div><div class="label" style="margin-top:10px">Calidad de descarga</div><div class="chips"><span class="chip on">Máxima</span><span class="chip">1080p</span><span class="chip">720p</span></div><div class="button">↓　Descargar vídeo</div><div class="ok">✓ Descarga añadida a la cola</div></div>
+      <div class="card"><div class="row"><div class="ring">68%</div><div><div class="title">Descarga activa</div><div class="sub">YouTube Short · 3.4 MB/s<br>restan 12 s · 7.1 MB / 10.4 MB</div></div></div></div>
+      <div class="statrow"><div class="stat"><b>1</b><span>ACTIVAS</span></div><div class="stat"><b>12</b><span>COMPLETADAS</span></div><div class="stat"><b>12</b><span>BIBLIOTECA</span></div></div>
+      <div class="card"><div class="row"><div class="grow"><div class="title">Servidor Termux</div><div class="sub">http://127.0.0.1:8080</div></div><span style="color:var(--green);font-size:9px">Conectado</span></div></div>
+    </div><nav class="nav"><span class="active"><b>↓</b>Descargar</span><span><b>▣</b>Descargas</span><span><b>▦</b>Biblioteca</span><span><b>⚙</b>Ajustes</span></nav></div></section>
+
+    <section class="phone"><div class="screen"><div class="status"><span>9:41</span><span>▮▮▮　⌁　▰</span></div><div class="body">
+      <div class="sectionhead"><div><h2>Descargas</h2><small>2 activas · 5 en total</small></div><span style="color:#f87171;font-size:9px">Cancelar todas</span></div><div class="filter"><span class="on">Activas</span><span>Completadas</span><span>Con error</span></div>
+      <div class="card"><div class="row"><div class="ring">68%</div><div class="grow"><div class="title">YouTube Short · ABC123</div><div class="sub">Descargando · 3.4 MB/s</div></div></div><div class="progress"><i></i></div></div>
+      <div class="card"><div class="row"><div class="ring" style="border-top-color:var(--green);border-right-color:var(--green)">24%</div><div class="grow"><div class="title">Facebook Reel · 7821</div><div class="sub">Esperando turno · cola 2</div></div></div><div class="progress"><i style="width:24%;background:var(--green)"></i></div></div>
+      <div class="notice">Notificación agrupada: una sola tarjeta muestra toda la cola, el progreso medio y la velocidad total.</div><div class="card folder"><div class="title">Historial persistente</div><div class="sub">Los trabajos sobreviven si cierras la app o cambia la red.</div></div>
+    </div><nav class="nav"><span><b>↓</b>Descargar</span><span class="active"><b>▣</b>Descargas</span><span><b>▦</b>Biblioteca</span><span><b>⚙</b>Ajustes</span></nav></div></section>
+
+    <section class="phone"><div class="screen"><div class="status"><span>9:41</span><span>▮▮▮　⌁　▰</span></div><div class="body">
+      <div class="sectionhead"><div><h2>Biblioteca</h2><small>3 ficheros temporales del servidor</small></div><span style="color:#c89bff;font-size:9px">Limpiar</span></div><div class="filter"><span>Servidor</span><span>Carpeta del teléfono</span><span class="on">Temporales</span></div><div class="input" style="box-shadow:none;border-color:var(--line)">⌕　Buscar por nombre…</div>
+      <div class="item"><div class="thumb">⌁</div><div class="grow"><strong>video [ABC123].mp4.part</strong><small>Descarga parcial · 8.4 MB · ahora</small></div><div class="trash">⌫</div></div>
+      <div class="item"><div class="thumb" style="background:linear-gradient(135deg,rgba(34,211,238,.5),rgba(59,130,246,.28))">≋</div><div class="grow"><strong>video [ABC123].info.json</strong><small>Metadatos · 4 KB · hace 1 min</small></div><div class="trash">⌫</div></div>
+      <div class="item"><div class="thumb" style="background:linear-gradient(135deg,rgba(249,115,22,.5),rgba(239,68,68,.28))">⋮</div><div class="grow"><strong>fragment-004.part-Frag3</strong><small>Fragmento · 2.1 MB · hace 3 min</small></div><div class="trash">⌫</div></div>
+      <div class="card folder"><div class="title">Gestión rápida</div><div class="sub">Los temporales se consultan y eliminan en el servidor, sin bloquear la interfaz del teléfono.</div></div>
+    </div><nav class="nav"><span><b>↓</b>Descargar</span><span><b>▣</b>Descargas</span><span class="active"><b>▦</b>Biblioteca</span><span><b>⚙</b>Ajustes</span></nav></div></section>
+
+    <section class="phone"><div class="screen"><div class="status"><span>9:41</span><span>▮▮▮　⌁　▰</span></div><div class="body">
+      <div class="sectionhead"><div><h2>Ajustes</h2><small>Servidor, descargas, temas y notificaciones</small></div></div><div class="card"><div class="title">☁　Servidor Termux <span style="float:right;color:var(--green);font-size:9px">En línea</span></div><div class="notice" style="margin-top:9px">Manu ReelDrop no inicia ningún servidor ni abre el puerto 8080. Solo se conecta al PHP que levantas en Termux.</div><div class="sub">http://127.0.0.1:8080 · token configurado</div></div>
+      <div class="card"><div class="title">◈　Temas</div><div class="sub" style="margin-bottom:9px">Elige un estilo y aplícalo al instante</div><div class="themegrid"><div class="theme"><i></i>Cereza</div><div class="theme"><i></i>Ártico</div><div class="theme"><i></i>Aurora</div><div class="theme"><i></i>Grafito</div></div></div>
+      <div class="card"><div class="title">▣　Carpeta de descargas</div><div class="sub">/storage/emulated/0/Movies/Vídeos · acceso concedido</div><div class="button" style="margin-top:9px;padding:9px;font-size:10px">Elegir carpeta</div></div><div class="card folder"><div class="title">◉　Notificaciones</div><div class="sub">Progreso agrupado y resultados reutilizables</div></div>
+    </div><nav class="nav"><span><b>↓</b>Descargar</span><span><b>▣</b>Descargas</span><span><b>▦</b>Biblioteca</span><span class="active"><b>⚙</b>Ajustes</span></nav></div></section>
+  </main>
+</body>
+</html>

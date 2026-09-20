@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -62,10 +63,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import com.manu.reeldrop.core.Constants
 import com.manu.reeldrop.core.Formatters
 import com.manu.reeldrop.core.ServiceLocator
 import com.manu.reeldrop.data.local.AppSettings
-import com.manu.reeldrop.domain.AppTheme
 import com.manu.reeldrop.domain.Quality
 import com.manu.reeldrop.domain.ServerMode
 import com.manu.reeldrop.domain.ServerHealth
@@ -79,6 +80,8 @@ import com.manu.reeldrop.util.NetworkInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val app: Application) : AndroidViewModel(app) {
@@ -100,9 +103,24 @@ class SettingsViewModel(private val app: Application) : AndroidViewModel(app) {
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
+    private val _folderAccessible = MutableStateFlow(false)
+    val folderAccessible: StateFlow<Boolean> = _folderAccessible.asStateFlow()
+    private var folderCheckJob: Job? = null
+    private var checkedFolderUri: String? = null
+
     init {
         viewModelScope.launch {
-            settings.flow.collect { value -> _settings.value = value }
+            settings.flow.collect { value ->
+                _settings.value = value
+                if (value.saveFolderUri != checkedFolderUri) {
+                    checkedFolderUri = value.saveFolderUri
+                    folderCheckJob?.cancel()
+                    val uri = value.saveFolderUri
+                    folderCheckJob = viewModelScope.launch(Dispatchers.IO) {
+                        _folderAccessible.value = uri.isNotBlank() && LocalFolder.isAccessible(app, uri)
+                    }
+                }
+            }
         }
     }
 
@@ -176,6 +194,7 @@ fun SettingsScreen(
     val health by viewModel.health.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
+    val folderAccessible by viewModel.folderAccessible.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val palette = LocalReelPalette.current
 
@@ -204,7 +223,7 @@ fun SettingsScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp, 18.dp, 16.dp, 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -241,6 +260,12 @@ fun SettingsScreen(
                 Spacer(Modifier.height(10.dp))
                 Text("¿Dónde está tu servidor?", style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(6.dp))
+                Text(
+                    "${Constants.APP_NAME} no inicia ningún servidor ni abre el puerto 8080: solo se conecta al PHP que tú levantas en Termux.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ServerMode.entries.forEach { mode ->
                         Surface(
@@ -431,7 +456,7 @@ fun SettingsScreen(
                 SectionTitle("Temas", Icons.Filled.Palette)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Elige el estilo visual de ReelDrop. El tema se aplica al instante en toda la app.",
+                    "Elige el estilo visual de ${Constants.APP_NAME}. El tema se aplica al instante en toda la app.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -534,7 +559,7 @@ fun SettingsScreen(
                 SectionTitle("Carpeta de descargas", Icons.Filled.Folder)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Elige cualquier carpeta del teléfono (o de la tarjeta SD) para guardar los videos y verlos desde ReelDrop.",
+                    "Elige cualquier carpeta del teléfono (o de la tarjeta SD) para guardar los videos y verlos desde ${Constants.APP_NAME}.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -558,15 +583,17 @@ fun SettingsScreen(
                             Text(
                                 if (settings.saveFolderUri.isBlank()) {
                                     "Sin carpeta personalizada"
-                                } else if (LocalFolder.isAccessible(context, settings.saveFolderUri)) {
+                                } else if (folderAccessible) {
                                     "Acceso concedido · los videos se guardan aquí"
                                 } else {
                                     "Permiso perdido: vuelve a elegir la carpeta"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (settings.saveFolderUri.isNotBlank() &&
-                                    LocalFolder.isAccessible(context, settings.saveFolderUri)
-                                ) palette.success else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (settings.saveFolderUri.isNotBlank() && folderAccessible) {
+                                    palette.success
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             )
                         }
                     }
@@ -623,7 +650,7 @@ fun SettingsScreen(
                     Icon(Icons.Filled.Info, contentDescription = null, tint = palette.accent)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Acerca de ReelDrop", style = MaterialTheme.typography.titleMedium)
+                        Text("Acerca de ${Constants.APP_NAME}", style = MaterialTheme.typography.titleMedium)
                         Text(
                             "Versión, autor, licencias y créditos",
                             style = MaterialTheme.typography.bodySmall,

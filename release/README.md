@@ -1,4 +1,7 @@
-# APK de ReelDrop
+# APK de Manu ReelDrop
+
+Los APK incluidos aquí son la referencia v1.0.0. El código actual declara la versión 1.1.0;
+la nueva build debe generarse con Android SDK/CI antes de sustituir estos binarios.
 
 | Archivo | Para qué |
 |---|---|
@@ -9,7 +12,7 @@
 
 1. Copia el APK al teléfono (o descárgalo desde la release de GitHub).
 2. Ábrelo y acepta **instalar apps de origen desconocido** si Android lo pide.
-3. Al abrir ReelDrop por primera vez, concede los permisos que solicite
+3. Al abrir Manu ReelDrop por primera vez, concede los permisos que solicite
    (notificaciones, videos/audio y descargas en segundo plano).
 4. Ve a **Ajustes → Servidor**, elige dónde está tu servidor y pega la dirección
    (`http://127.0.0.1:8080` si usas Termux en este mismo móvil) y el token de API.
@@ -31,6 +34,6 @@ keytool -genkeypair -v -keystore mi-keystore.jks -alias reeldrop \
 
 ```bash
 ./gradlew assembleRelease
-cp app/build/outputs/apk/release/app-release.apk release/ReelDrop-v1.0.1.apk
-git add -A && git commit -m "Nuevo APK v1.0.1" && git push origin main
+cp app/build/outputs/apk/release/app-release.apk release/ManuReelDrop-v1.1.0.apk
+git add -A && git commit -m "Publicar APK Manu ReelDrop v1.1.0" && git push origin main
 ```

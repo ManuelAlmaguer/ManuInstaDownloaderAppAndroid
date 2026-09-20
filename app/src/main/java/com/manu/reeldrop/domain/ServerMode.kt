@@ -1,7 +1,7 @@
 package com.manu.reeldrop.domain
 
 /**
- * Where the user decided to run the ReelDrop server. It only changes the helper text,
+ * Where the user decided to run the Manu ReelDrop server. It only changes the helper text,
  * the suggested address and the security warnings — the app always talks to one URL.
  */
 enum class ServerMode(val id: String, val label: String, val hint: String, val defaultPort: Int) {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -60,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import com.manu.reeldrop.core.Constants
 import com.manu.reeldrop.core.Formatters
 import com.manu.reeldrop.core.ServiceLocator
 import com.manu.reeldrop.domain.DownloadJob
@@ -91,7 +93,7 @@ data class HomeUiState(
     val libraryCount: Int = 0,
     val serverUrl: String = "",
 ) {
-    val urlIsValid: Boolean get() = UrlUtils.isInstagramUrl(url)
+    val urlIsValid: Boolean get() = UrlUtils.isSupportedUrl(url)
     val detectedKind: String get() = UrlUtils.contentKind(url)
 }
 
@@ -134,8 +136,8 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
         } else {
             _state.value = _state.value.copy(
                 url = url,
-                message = if (UrlUtils.isInstagramUrl(url)) "Enlace detectado: ${UrlUtils.contentKind(url)}" else "Ojo: no parece un enlace de Instagram",
-                messageIsError = !UrlUtils.isInstagramUrl(url),
+                message = if (UrlUtils.isSupportedUrl(url)) "Enlace detectado: ${UrlUtils.contentKind(url)}" else "Ojo: no parece un enlace compatible",
+                messageIsError = !UrlUtils.isSupportedUrl(url),
             )
         }
     }
@@ -152,18 +154,20 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
     fun download() {
         val current = _state.value
         if (current.url.isBlank()) {
-            _state.value = current.copy(message = "Pega primero un enlace de Instagram", messageIsError = true)
+            _state.value = current.copy(message = "Pega primero un enlace de vídeo", messageIsError = true)
             return
         }
         if (!current.urlIsValid) {
-            _state.value = current.copy(message = "El enlace debe ser de Instagram (reel, post o historia)", messageIsError = true)
+            _state.value = current.copy(message = "El enlace debe ser de Instagram, YouTube o Facebook", messageIsError = true)
             return
         }
         _state.value = current.copy(busy = true, message = null)
         viewModelScope.launch {
             val result = engine.enqueue(current.url, current.quality.id)
             result.onSuccess {
-                DownloadService.start(app.applicationContext, current.url, current.quality.id)
+                // The local job is already enqueued above. The service only keeps the
+                // foreground lifecycle alive; passing the URL here would enqueue it twice.
+                DownloadService.start(app.applicationContext)
                 _state.value = _state.value.copy(
                     busy = false,
                     url = "",
@@ -256,7 +260,7 @@ fun HomeScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 18.dp, 16.dp, 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -268,8 +272,8 @@ fun HomeScreen(
                     value = state.url,
                     onValueChange = viewModel::onUrlChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Enlace de Instagram") },
-                    placeholder = { Text("https://www.instagram.com/reel/…") },
+                    label = { Text("Enlace de vídeo") },
+                    placeholder = { Text("Instagram, YouTube o Facebook…") },
                     leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
                     trailingIcon = {
                         Row {
@@ -398,8 +402,8 @@ fun HomeScreen(
                 Text("Cómo funciona", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 listOf(
-                    "Copia el enlace del reel desde Instagram (Compartir → ReelDrop también sirve).",
-                    "ReelDrop envía el enlace a tu servidor de Termux, que descarga con yt-dlp.",
+                    "Copia el enlace del vídeo desde Instagram, YouTube o Facebook (Compartir → ${Constants.APP_NAME} también sirve).",
+                    "${Constants.APP_NAME} envía el enlace a tu servidor de Termux, que descarga con yt-dlp.",
                     "La app muestra progreso, velocidad y tiempo restante en vivo, y te avisa al terminar.",
                 ).forEachIndexed { index, line ->
                     Row(Modifier.padding(vertical = 4.dp)) {
@@ -441,9 +445,9 @@ private fun BrandHeader(state: HomeUiState, onOpenSettings: () -> Unit, onRefres
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text("ReelDrop", style = MaterialTheme.typography.headlineMedium)
+            Text(Constants.APP_NAME, style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Descarga reels a la velocidad de tu servidor",
+                "Descarga vídeos a la velocidad de tu servidor",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

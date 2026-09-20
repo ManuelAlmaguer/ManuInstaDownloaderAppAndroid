@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -104,7 +105,7 @@ fun AboutScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -138,7 +139,7 @@ fun AboutScreen(
                     Column {
                         Text(Constants.APP_NAME, style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            "Descargador de Instagram con servidor propio (Termux)",
+                            "Descargador de vídeos con servidor propio (Termux)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -241,16 +242,16 @@ fun AboutScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Favorite, contentDescription = null, tint = palette.accent)
                     Spacer(Modifier.width(8.dp))
-                    Text("Qué puede hacer ReelDrop", style = MaterialTheme.typography.titleMedium)
+                    Text("Qué puede hacer ${Constants.APP_NAME}", style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(Modifier.height(8.dp))
                 listOf(
-                    "Descarga reels, publicaciones, historias e IGTV pegando un enlace o compartiendo desde Instagram.",
+                    "Descarga vídeos de Instagram, YouTube y Facebook pegando un enlace o compartiéndolo desde otra app.",
                     "Cola de descargas con progreso en vivo: porcentaje, velocidad, tamaño y tiempo restante.",
                     "Reintentos automáticos con espera progresiva y recuperación tras perder la conexión.",
                     "Notificación de progreso con acciones y aviso al terminar o fallar.",
                     "Biblioteca con miniaturas, reproductor integrado, guardado en el dispositivo y borrado remoto.",
-                    "8 temas visuales (incluido Material You) y modo claro/oscuro/automático.",
+                    "12 temas visuales (incluido Material You) y modo claro/oscuro/automático.",
                 ).forEach { line ->
                     Row(Modifier.padding(vertical = 3.dp)) {
                         Text("•", color = palette.accent, style = MaterialTheme.typography.bodyMedium)
@@ -274,10 +275,10 @@ fun AboutScreen(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "ReelDrop no envía tus enlaces ni tus archivos a ningún servicio externo: todo el trabajo lo hace " +
+                    "${Constants.APP_NAME} no envía tus enlaces ni tus archivos a ningún servicio externo: todo el trabajo lo hace " +
                         "tu propio servidor (Termux + yt-dlp). Las descargas se guardan en tu teléfono y la app solo " +
                         "habla con la dirección que configures. Descarga únicamente contenido propio o con permiso, " +
-                        "y respeta los términos de uso de Instagram.",
+                        "y respeta los términos de uso de cada plataforma.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -286,13 +287,13 @@ fun AboutScreen(
 
         item {
             GlassCard {
-                SectionHeader("Novedades de la versión 1.0.0")
+                SectionHeader("Novedades de la versión ${BuildConfig.VERSION_NAME}")
                 Spacer(Modifier.height(8.dp))
                 listOf(
                     "Primera versión completa de la app Android.",
                     "Servidor PHP reescrito con cola de trabajos, progreso persistente y compatibilidad con la web antigua.",
                     "Notificaciones de progreso y de resultado con acciones.",
-                    "8 temas visuales, modo claro/oscuro y color dinámico.",
+                    "12 temas visuales, modo claro/oscuro y color dinámico.",
                 ).forEach { line ->
                     Text(
                         "· $line",

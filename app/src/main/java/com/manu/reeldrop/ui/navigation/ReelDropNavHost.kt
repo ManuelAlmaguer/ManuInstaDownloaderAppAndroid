@@ -1,6 +1,5 @@
 package com.manu.reeldrop.ui.navigation
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,6 +13,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -69,8 +70,11 @@ fun ReelDropRoot(
 
     Scaffold(
         bottomBar = {
-            AnimatedVisibility(visible = currentRoute != ReelTab.ABOUT.route) {
-                NavigationBar {
+            if (currentRoute != ReelTab.ABOUT.route) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 3.dp,
+                ) {
                     bottomTabs.forEach { tab ->
                         val selected = backStackEntry?.destination?.hierarchy?.any { it.route == tab.route } == true
                         NavigationBarItem(
@@ -100,7 +104,11 @@ fun ReelDropRoot(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            NavHost(navController = navController, startDestination = ReelTab.HOME.route) {
+            NavHost(
+                navController = navController,
+                startDestination = ReelTab.HOME.route,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 composable(ReelTab.HOME.route) {
                     HomeScreen(
                         sharedUrl = sharedUrl,

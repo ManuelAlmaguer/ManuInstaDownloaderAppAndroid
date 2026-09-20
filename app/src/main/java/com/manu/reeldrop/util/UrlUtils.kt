@@ -3,8 +3,17 @@ package com.manu.reeldrop.util
 /** Instagram URL parsing and validation. */
 object UrlUtils {
 
-    private val instagramHosts = listOf("instagram.com", "instagr.am", "ig.me", "instagram.")
     private val urlRegex = Regex("""https?://[^\s"'<>]+""", RegexOption.IGNORE_CASE)
+
+    enum class Platform(val label: String, private val hosts: List<String>) {
+        INSTAGRAM("Instagram", listOf("instagram.com", "instagr.am", "ig.me")),
+        YOUTUBE("YouTube", listOf("youtube.com", "youtu.be", "youtube-nocookie.com")),
+        FACEBOOK("Facebook", listOf("facebook.com", "fb.watch"));
+
+        fun accepts(host: String): Boolean = hosts.any { candidate ->
+            host == candidate || host.endsWith(".$candidate")
+        }
+    }
 
     /** Pulls the first http(s) URL out of arbitrary text (share sheets are messy). */
     fun extractUrl(text: String?): String? {
@@ -17,19 +26,27 @@ object UrlUtils {
     fun looksLikeUrl(value: String): Boolean =
         value.startsWith("http://", true) || value.startsWith("https://", true)
 
-    fun isInstagramUrl(value: String?): Boolean {
+    fun platform(value: String?): Platform? {
         val url = value?.trim().orEmpty()
-        if (!looksLikeUrl(url)) return false
-        val host = runCatching {
-            java.net.URI(url).host?.lowercase()
-        }.getOrNull() ?: return false
-        return instagramHosts.any { host == it || host.endsWith(".$it") || host.contains(it) }
+        if (!looksLikeUrl(url)) return null
+        val host = runCatching { java.net.URI(url).host?.lowercase() }.getOrNull() ?: return null
+        return Platform.entries.firstOrNull { it.accepts(host) }
+    }
+
+    fun isSupportedUrl(value: String?): Boolean = platform(value) != null
+
+    fun isInstagramUrl(value: String?): Boolean {
+        return platform(value) == Platform.INSTAGRAM
     }
 
     /** Short label such as "reel", "post" or "story" used in the UI. */
     fun contentKind(value: String?): String {
         val url = value?.lowercase().orEmpty()
         return when {
+            platform(value) == Platform.YOUTUBE && "/shorts/" in url -> "YouTube Short"
+            platform(value) == Platform.YOUTUBE -> "Vídeo de YouTube"
+            platform(value) == Platform.FACEBOOK && ("/reel" in url || "/reels" in url) -> "Reel de Facebook"
+            platform(value) == Platform.FACEBOOK -> "Vídeo de Facebook"
             "/reel" in url || "/reels" in url -> "Reel"
             "/stories/" in url -> "Historia"
             "/tv/" in url -> "IGTV"

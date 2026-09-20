@@ -300,6 +300,24 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         if (!response.ok && response.error != null) throw ApiException.ServerError(response.error)
     }
 
+    suspend fun temporaryFiles(): List<TemporaryFileDto> {
+        val settings = settingsProvider()
+        val base = normalizeBaseUrl(settings.serverUrl)
+        return getJson<TemporaryEnvelope>(endpoint(base, "temporary"), settings.apiToken, base).items
+    }
+
+    suspend fun deleteTemporaryFile(file: String) {
+        val settings = settingsProvider()
+        val base = normalizeBaseUrl(settings.serverUrl)
+        val response = postJson<SimpleResponse>(
+            endpoint(base, "temporary-delete"),
+            settings.apiToken,
+            jsonBody("file" to file),
+            base,
+        )
+        if (!response.ok && response.error != null) throw ApiException.ServerError(response.error)
+    }
+
     suspend fun cleanup(): SimpleResponse {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)

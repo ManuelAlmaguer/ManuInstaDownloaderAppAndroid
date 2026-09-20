@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -58,8 +59,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import coil.compose.AsyncImage
 import com.manu.reeldrop.core.Formatters
+import com.manu.reeldrop.core.Constants
 import com.manu.reeldrop.core.ServiceLocator
 import com.manu.reeldrop.domain.LibraryItem
+import com.manu.reeldrop.domain.TemporaryFile
 import com.manu.reeldrop.ui.components.EmptyState
 import com.manu.reeldrop.ui.components.GlassCard
 import com.manu.reeldrop.ui.components.SectionHeader
@@ -70,11 +73,15 @@ import com.manu.reeldrop.util.LocalFolder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class LibrarySource(val label: String) {
     SERVER("Servidor"),
     DEVICE("Carpeta del teléfono"),
+    TEMPORARY("Temporales"),
 }
 
 data class LibraryUiState(
@@ -87,6 +94,7 @@ data class LibraryUiState(
     val localVideos: List<LocalFolder.LocalVideo> = emptyList(),
     val localFolderConfigured: Boolean = false,
     val localFolderAccessible: Boolean = false,
+    val temporaryFiles: List<TemporaryFile> = emptyList(),
 )
 
 class LibraryViewModel(private val app: Application) : AndroidViewModel(app) {
@@ -96,6 +104,7 @@ class LibraryViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private val _state = MutableStateFlow(LibraryUiState())
     val state: StateFlow<LibraryUiState> = _state.asStateFlow()
+    private var localRefreshJob: Job? = null
 
     init {
         refresh()
@@ -107,28 +116,48 @@ class LibraryViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun setSource(source: LibrarySource) {
         _state.value = _state.value.copy(source = source)
-        if (source == LibrarySource.DEVICE) refreshLocal()
+        when (source) {
+            LibrarySource.SERVER -> refreshServer()
+            LibrarySource.DEVICE -> refreshLocal()
+            LibrarySource.TEMPORARY -> refreshTemporary()
+        }
     }
 
     /** Lists the videos inside the folder the user picked with the system file picker. */
     fun refreshLocal() {
-        val tree = settings.cached.saveFolderUri
-        val configured = tree.isNotBlank()
-        val accessible = configured && LocalFolder.isAccessible(app, tree)
-        val videos = if (accessible) LocalFolder.list(app, tree) else emptyList()
-        _state.value = _state.value.copy(
-            localVideos = videos,
-            localFolderConfigured = configured,
-            localFolderAccessible = accessible,
-        )
+        localRefreshJob?.cancel()
+        localRefreshJob = viewModelScope.launch {
+            val tree = settings.cached.saveFolderUri
+            val result = withContext(Dispatchers.IO) {
+                val configured = tree.isNotBlank()
+                val accessible = configured && LocalFolder.isAccessible(app, tree)
+                val videos = if (accessible) LocalFolder.list(app, tree) else emptyList()
+                Triple(configured, accessible, videos)
+            }
+            _state.value = _state.value.copy(
+                localVideos = result.third,
+                localFolderConfigured = result.first,
+                localFolderAccessible = result.second,
+            )
+        }
     }
 
     fun deleteLocal(video: LocalFolder.LocalVideo) {
-        LocalFolder.delete(app, video.uri)
-        refreshLocal()
+        viewModelScope.launch(Dispatchers.IO) {
+            LocalFolder.delete(app, video.uri)
+            refreshLocal()
+        }
     }
 
     fun refresh() {
+        when (_state.value.source) {
+            LibrarySource.SERVER -> refreshServer()
+            LibrarySource.DEVICE -> refreshLocal()
+            LibrarySource.TEMPORARY -> refreshTemporary()
+        }
+    }
+
+    private fun refreshServer() {
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null)
             runCatching { library.list(_state.value.query) }
@@ -140,7 +169,22 @@ class LibraryViewModel(private val app: Application) : AndroidViewModel(app) {
                     )
                 }
         }
-        refreshLocal()
+    }
+
+    fun refreshTemporary() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+            runCatching { library.temporaryFiles() }
+                .onSuccess { files ->
+                    _state.value = _state.value.copy(temporaryFiles = files, loading = false)
+                }
+                .onFailure { error ->
+                    _state.value = _state.value.copy(
+                        loading = false,
+                        error = error.message ?: "No se pudieron leer los temporales",
+                    )
+                }
+        }
     }
 
     fun delete(item: LibraryItem) {
@@ -149,6 +193,16 @@ class LibraryViewModel(private val app: Application) : AndroidViewModel(app) {
                 .onSuccess {
                     _state.value = _state.value.copy(items = _state.value.items.filterNot { it.name == item.name })
                 }
+                .onFailure { error ->
+                    _state.value = _state.value.copy(error = error.message ?: "No se pudo eliminar")
+                }
+        }
+    }
+
+    fun deleteTemporary(file: TemporaryFile) {
+        viewModelScope.launch {
+            runCatching { library.deleteTemporary(file.name) }
+                .onSuccess { refreshTemporary() }
                 .onFailure { error ->
                     _state.value = _state.value.copy(error = error.message ?: "No se pudo eliminar")
                 }
@@ -177,6 +231,17 @@ class LibraryViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun filteredTemporary(): List<TemporaryFile> {
+        val query = _state.value.query.trim().lowercase()
+        return if (query.isEmpty()) {
+            _state.value.temporaryFiles
+        } else {
+            _state.value.temporaryFiles.filter {
+                it.name.lowercase().contains(query) || it.kind.lowercase().contains(query)
+            }
+        }
+    }
+
     companion object {
         val Factory = viewModelFactory {
             initializer {
@@ -200,12 +265,13 @@ fun LibraryScreen(
     var playing by remember { mutableStateOf<LibraryItem?>(null) }
 
     val visible = viewModel.filtered()
+    val visibleTemporary = viewModel.filteredTemporary()
 
     LaunchedEffect(state.items.size) {
         if (state.items.isEmpty() && state.error == null) viewModel.refresh()
     }
 
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -217,12 +283,14 @@ fun LibraryScreen(
                 subtitle = when (state.source) {
                     LibrarySource.SERVER -> "${state.items.size} archivos en el servidor"
                     LibrarySource.DEVICE -> "${state.localVideos.size} videos en la carpeta del teléfono"
+                    LibrarySource.TEMPORARY -> "${state.temporaryFiles.size} ficheros temporales del servidor"
                 },
-                actionText = if (state.cleaningUp) "Limpiando…" else "Limpiar temporales",
-                onAction = { viewModel.cleanup() },
+                actionText = if (state.source == LibrarySource.DEVICE) null
+                else if (state.cleaningUp) "Limpiando…" else "Limpiar temporales",
+                onAction = { if (state.source != LibrarySource.DEVICE) viewModel.cleanup() },
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LibrarySource.entries.forEach { source ->
+            androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(LibrarySource.entries.toList()) { source ->
                     FilterChip(
                         selected = state.source == source,
                         onClick = { viewModel.setSource(source) },
@@ -262,7 +330,7 @@ fun LibraryScreen(
                     message = if (state.localFolderAccessible) {
                         "Aún no hay videos en la carpeta que elegiste."
                     } else {
-                        "ReelDrop perdió el permiso de esa carpeta. Vuelve a elegirla en Ajustes."
+                        "${Constants.APP_NAME} perdió el permiso de esa carpeta. Vuelve a elegirla en Ajustes."
                     },
                     actionText = "Refrescar",
                     onAction = { viewModel.refreshLocal() },
@@ -288,6 +356,31 @@ fun LibraryScreen(
                             },
                             onDelete = { viewModel.deleteLocal(video) },
                         )
+                    }
+                }
+            }
+        } else if (state.source == LibrarySource.TEMPORARY) {
+            when {
+                state.loading && state.temporaryFiles.isEmpty() -> Box(
+                    Modifier.fillMaxWidth().padding(40.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+
+                visibleTemporary.isEmpty() -> EmptyState(
+                    icon = Icons.Filled.Delete,
+                    title = if (state.error != null) "Sin conexión" else "No hay temporales",
+                    message = state.error
+                        ?: "Aquí aparecerán fragmentos, metadatos y descargas incompletas del servidor.",
+                    actionText = "Refrescar",
+                    onAction = { viewModel.refreshTemporary() },
+                )
+
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(visibleTemporary, key = { it.name }) { file ->
+                        TemporaryFileCard(file = file, onDelete = { viewModel.deleteTemporary(file) })
                     }
                 }
             }
@@ -410,6 +503,48 @@ private fun LocalVideoCard(
                         Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = palette.danger)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TemporaryFileCard(
+    file: com.manu.reeldrop.domain.TemporaryFile,
+    onDelete: () -> Unit,
+) {
+    val palette = LocalReelPalette.current
+    GlassCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = palette.warning.copy(alpha = 0.14f),
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = palette.warning,
+                    modifier = Modifier.padding(12.dp).size(24.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    file.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    listOf(file.kind, Formatters.bytes(file.size), Formatters.relativeTime(file.modified))
+                        .joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = "Eliminar temporal", tint = palette.danger)
             }
         }
     }

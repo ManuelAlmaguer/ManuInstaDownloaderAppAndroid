@@ -1,4 +1,4 @@
-# Arquitectura de ReelDrop
+# Arquitectura de Manu ReelDrop
 
 ## Vista general
 
@@ -6,7 +6,7 @@
 ┌──────────────────────────────── App Android ────────────────────────────────┐
 │                                                                             │
 │  ui/            Compose: Home, Descargas, Biblioteca, Ajustes, Acerca de     │
-│                 (temas: 8 paletas + claro/oscuro/automático + Material You)  │
+│                 (temas: 12 paletas + claro/oscuro/automático + Material You) │
 │                                                                             │
 │  service/       DownloadEngine  →  cola, concurrencia, reintentos, SSE       │
 │                 DownloadService →  servicio en primer plano + notificaciones │
@@ -44,6 +44,9 @@
    muestra la notificación de resultado y (si está configurado) copia el video al teléfono o a
    la carpeta SAF elegida.
 
+La app no ejecuta PHP ni crea un listener en el puerto 8080. `server/start.sh` es el proceso
+que el usuario inicia en Termux; Android solo consume su API por la URL configurada.
+
 ## Robustez
 
 | Fallo | Respuesta automática |
@@ -65,10 +68,12 @@
 | Trabajos del servidor | `server/data/jobs/*.json` | Un archivo por trabajo |
 | Metadatos y miniaturas | `server/data/meta`, `server/data/thumbs` | JSON + JPEG |
 | Videos | `server/downloads` o la carpeta elegida por el usuario (SAF) | Archivo original |
+| Temporales | `server/downloads/*.part`, `*.ytdl`, `*.tmp`, fragmentos e info JSON | Listados por `temporary` |
 
 ## Calidad
 
-* Tests unitarios: formateo de bytes/velocidad/ETA y validación de enlaces de Instagram.
+* Tests unitarios: formateo de bytes/velocidad/ETA y validación de enlaces de Instagram,
+  YouTube y Facebook.
 * Lint de Android configurado (no bloqueante) y de PHP (`php -l`) en los scripts.
 * CI en GitHub Actions: compila `assembleDebug` + `assembleRelease`, ejecuta los tests y
   publica los APK como artefactos.

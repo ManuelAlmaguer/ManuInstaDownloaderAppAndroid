@@ -1,6 +1,6 @@
 <?php
 /**
- * ReelDrop server configuration.
+ * Manu ReelDrop server configuration.
  *
  * Copy this file to `config.php` and edit it:
  *
@@ -51,7 +51,11 @@ return [
     'retention_days' => 0,
 
     /** Only these hosts are accepted, as a safety net against SSRF. */
-    'allowed_hosts' => ['instagram.com', 'instagr.am', 'ig.me', 'www.instagram.com'],
+    'allowed_hosts' => [
+        'instagram.com', 'instagr.am', 'ig.me',
+        'youtube.com', 'youtu.be', 'youtube-nocookie.com',
+        'facebook.com', 'fb.watch',
+    ],
 
     /** Seconds a job may stay in "downloading" without a heartbeat before it is marked failed. */
     'stale_job_seconds' => 45,

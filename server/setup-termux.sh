@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 #
-# ReelDrop Server - instalador para Termux (Android)
+# Manu ReelDrop Server - instalador para Termux (Android)
 #
 #   bash setup-termux.sh
 #
@@ -8,7 +8,7 @@
 
 set -e
 
-echo "== ReelDrop Server: instalando dependencias =="
+echo "== Manu ReelDrop Server: instalando dependencias =="
 pkg update -y || true
 pkg install -y php python ffmpeg openssl termux-api || pkg install -y php python ffmpeg openssl
 

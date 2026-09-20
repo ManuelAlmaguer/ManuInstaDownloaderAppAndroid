@@ -16,18 +16,20 @@ import com.manu.reeldrop.core.Formatters
 import com.manu.reeldrop.domain.DownloadJob
 import com.manu.reeldrop.domain.JobStatus
 import com.manu.reeldrop.ui.MainActivity
-import kotlin.math.abs
 
 /**
- * Owns every notification the app posts:
+ * Owns the app's notification surface.
  *
- *  * a foreground/download notification per active job (percent, speed, ETA, size, cancel),
- *  * a grouped summary when several downloads run at once,
- *  * a result notification when a download finishes or fails (open / share / retry).
+ * There is deliberately one live notification for the whole queue. The foreground service and
+ * the engine update the same notification id, so a progress event can never create a second
+ * card for the same job. Finished/error notifications also reuse one id and therefore behave as
+ * a single result card instead of accumulating duplicates.
  */
 class Notifications(private val context: Context) {
 
     private val manager = NotificationManagerCompat.from(context)
+    private val progressLock = Any()
+    private var lastProgressNotificationAt = 0L
 
     fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -79,10 +81,9 @@ class Notifications(private val context: Context) {
         )
     }
 
-    private fun actionIntent(action: String, localId: String, requestCode: Int): PendingIntent {
+    private fun actionIntent(action: String, requestCode: Int): PendingIntent {
         val intent = Intent(context, NotificationActionReceiver::class.java).apply {
             this.action = action
-            putExtra(Constants.EXTRA_LOCAL_ID, localId)
         }
         return PendingIntent.getBroadcast(
             context,
@@ -92,87 +93,105 @@ class Notifications(private val context: Context) {
         )
     }
 
-    fun idFor(job: DownloadJob): Int = abs(job.localId.hashCode()) % 100_000 + 1
-
-    /** Per-download progress notification with live speed, size and ETA. */
-    fun buildProgress(job: DownloadJob, ongoing: Boolean = true): Notification {
-        val percent = job.progress.toInt().coerceIn(0, 100)
-        val total = if (job.totalBytes > 0) job.totalBytes else null
-        val sizeText = if (total != null) {
-            "${Formatters.bytes(job.downloadedBytes)} / ${Formatters.bytes(total)}"
-        } else {
-            Formatters.bytes(job.downloadedBytes)
-        }
-        val statusLine = buildString {
-            append(job.displayTitle().take(60))
-            append('\n')
-            append("$percent%")
-            if (job.speedBps > 0) append(" · ${Formatters.speed(job.speedBps)}")
-            job.etaSeconds?.let { append(" · resta ${Formatters.eta(it)}") }
-            append(" · $sizeText")
-        }
-
-        return NotificationCompat.Builder(context, Constants.CHANNEL_PROGRESS)
-            .setSmallIcon(R.drawable.ic_notification_download)
-            .setContentTitle(job.displayTitle().take(60))
-            .setContentText("$percent% · ${if (job.speedBps > 0) Formatters.speed(job.speedBps) else "calculando velocidad…"}")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(statusLine))
-            .setProgress(100, percent, total == null)
-            .setSubText(if (job.status == JobStatus.PROCESSING) "Procesando en el servidor…" else "Descargando en el servidor")
-            .setOngoing(ongoing)
-            .setOnlyAlertOnce(true)
-            .setSilent(true)
-            .setContentIntent(contentIntent())
-            .addAction(
-                R.drawable.ic_notification_error,
-                context.getString(R.string.notif_action_cancel),
-                actionIntent(Constants.ACTION_CANCEL, job.localId, job.localId.hashCode()),
-            )
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .build()
-    }
-
-    /** Summary used while the service owns several concurrent downloads. */
-    fun buildSummary(jobs: List<DownloadJob>): Notification {
+    /** One compact, grouped notification for every active download. */
+    fun buildActiveNotification(jobs: List<DownloadJob>): Notification {
         val active = jobs.filter { it.isActive }
-        val avg = if (active.isEmpty()) 0 else (active.sumOf { it.progress.toDouble() } / active.size).toInt()
-        val totalSpeed = active.sumOf { it.speedBps }
-        val text = buildString {
-            append("${active.size} descarga${if (active.size == 1) "" else "s"} en curso")
-            append(" · $avg%")
-            if (totalSpeed > 0) append(" · ${Formatters.speed(totalSpeed)}")
+        val average = if (active.isEmpty()) 0 else {
+            (active.sumOf { it.progress.toDouble() } / active.size).toInt()
         }
-        return NotificationCompat.Builder(context, Constants.CHANNEL_PROGRESS)
+        val totalSpeed = active.sumOf { it.speedBps }
+        val single = active.size == 1
+        val headline = if (single) active.first().displayTitle().take(60)
+        else "${Constants.APP_NAME} · ${active.size} descargas"
+        val summary = if (single) {
+            val job = active.first()
+            "${job.progress.toInt()}% · ${if (job.speedBps > 0) Formatters.speed(job.speedBps) else "calculando velocidad…"}"
+        } else {
+            "$average% medio${if (totalSpeed > 0) " · ${Formatters.speed(totalSpeed)}" else ""}"
+        }
+        val builder = NotificationCompat.Builder(context, Constants.CHANNEL_PROGRESS)
             .setSmallIcon(R.drawable.ic_notification_download)
-            .setContentTitle("ReelDrop")
-            .setContentText(text)
-            .setStyle(NotificationCompat.InboxStyle().also { style ->
-                active.take(5).forEach { style.addLine("${it.displayTitle().take(40)} — ${it.progress.toInt()}%") }
-            })
-            .setProgress(100, avg, false)
+            .setContentTitle(headline)
+            .setContentText(summary)
+            .setSubText(if (single) "Descarga activa" else "Cola de descargas")
+            .setProgress(100, average.coerceIn(0, 100), active.none { it.totalBytes > 0 })
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
-            .setGroup("reeldrop_active")
-            .setGroupSummary(true)
+            .setColor(0xFFA855F7.toInt())
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(contentIntent())
+            .addAction(
+                R.drawable.ic_notification_error,
+                "Cancelar todo",
+                actionIntent(Constants.ACTION_CANCEL_ALL, 101),
+            )
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .build()
+
+        if (single) {
+            val job = active.first()
+            val detail = buildString {
+                append("${job.progress.toInt()}%")
+                if (job.speedBps > 0) append(" · ${Formatters.speed(job.speedBps)}")
+                job.etaSeconds?.let { append(" · resta ${Formatters.eta(it)}") }
+                append("\n${Formatters.bytes(job.downloadedBytes)}")
+                if (job.totalBytes > 0) append(" / ${Formatters.bytes(job.totalBytes)}")
+                job.serverMessage?.takeIf { it.isNotBlank() }?.let { append("\n$it") }
+            }
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+        } else {
+            builder.setStyle(NotificationCompat.InboxStyle().also { style ->
+                active.take(5).forEach { job ->
+                    style.addLine("${job.progress.toInt()}% · ${job.displayTitle().take(42)}")
+                }
+            })
+        }
+        return builder.build()
+    }
+
+    /** Throttled update path used by the engine; it always targets one id. */
+    fun notifyProgress(jobs: List<DownloadJob>) {
+        val active = jobs.filter { it.isActive }
+        synchronized(progressLock) {
+            if (active.isEmpty()) {
+                manager.cancel(Constants.NOTIFICATION_SERVICE_ID)
+                return
+            }
+            val now = System.currentTimeMillis()
+            if (now - lastProgressNotificationAt < 450L) return
+            lastProgressNotificationAt = now
+            safeNotify(Constants.NOTIFICATION_SERVICE_ID, buildActiveNotification(active))
+        }
+    }
+
+    /** Forces a queue refresh after cancellation/removal, including clearing the card when empty. */
+    fun refreshProgress(jobs: List<DownloadJob>) {
+        synchronized(progressLock) {
+            lastProgressNotificationAt = 0L
+            val active = jobs.filter { it.isActive }
+            if (active.isEmpty()) {
+                manager.cancel(Constants.NOTIFICATION_SERVICE_ID)
+            } else {
+                safeNotify(Constants.NOTIFICATION_SERVICE_ID, buildActiveNotification(active))
+            }
+        }
     }
 
     fun buildIdleServiceNotification(): Notification =
         NotificationCompat.Builder(context, Constants.CHANNEL_SERVICE)
             .setSmallIcon(R.drawable.ic_notification_download)
-            .setContentTitle("ReelDrop")
+            .setContentTitle(Constants.APP_NAME)
             .setContentText("Preparando descarga…")
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .setSilent(true)
+            .setColor(0xFFA855F7.toInt())
             .setContentIntent(contentIntent())
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
 
-    /** "Done" / "error" notification, always actionable. */
+    /** One reusable result card; a later result updates the same card instead of stacking. */
     fun buildResult(job: DownloadJob): Notification {
         val completed = job.status == JobStatus.COMPLETED
         val builder = NotificationCompat.Builder(context, Constants.CHANNEL_RESULTS)
@@ -188,50 +207,67 @@ class Notifications(private val context: Context) {
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
                     if (completed) {
-                        "${job.displayTitle()}\nGuardado en el servidor como ${job.filename ?: "archivo"}."
+                        "${Constants.APP_NAME}\n${job.displayTitle()}\nGuardado en el servidor como ${job.filename ?: "archivo"}."
                     } else {
-                        (job.errorMessage ?: "Error desconocido") + "\nToca Reintentar para volver a intentarlo."
+                        "${Constants.APP_NAME}\n${job.errorMessage ?: "Error desconocido"}\nToca Reintentar para volver a intentarlo."
                     },
                 ),
             )
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setColor(if (completed) 0xFF34D399.toInt() else 0xFFF87171.toInt())
+            .setCategory(if (completed) NotificationCompat.CATEGORY_STATUS else NotificationCompat.CATEGORY_ERROR)
             .setContentIntent(contentIntent())
-            .setGroup("reeldrop_results")
 
         if (completed) {
             builder.addAction(
                 R.drawable.ic_notification_done,
                 context.getString(R.string.notif_action_open),
-                actionIntent(Constants.ACTION_OPEN_APP, job.localId, job.localId.hashCode() + 7),
+                actionIntent(Constants.ACTION_OPEN_APP, 102),
             )
         } else {
+            val retryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
+                action = Constants.ACTION_RETRY
+                putExtra(Constants.EXTRA_LOCAL_ID, job.localId)
+            }
             builder.addAction(
                 R.drawable.ic_notification_download,
                 context.getString(R.string.notif_action_retry),
-                actionIntent(Constants.ACTION_RETRY, job.localId, job.localId.hashCode() + 3),
+                PendingIntent.getBroadcast(
+                    context,
+                    103,
+                    retryIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
             )
         }
         return builder.build()
     }
 
-    fun notifyProgress(job: DownloadJob) = safeNotify(idFor(job), buildProgress(job))
-
-    fun notifyResult(job: DownloadJob) {
-        val id = if (job.status == JobStatus.COMPLETED) {
-            Constants.NOTIFICATION_RESULT_BASE_ID + (abs(job.localId.hashCode()) % 500)
-        } else {
-            Constants.NOTIFICATION_ERROR_BASE_ID + (abs(job.localId.hashCode()) % 500)
+    fun notifyResult(job: DownloadJob, jobs: List<DownloadJob> = emptyList()) {
+        synchronized(progressLock) {
+            // Keep the foreground card visible when another download is still active. The
+            // service observer will remove it once the last active job finishes.
+            if (jobs.none { it.isActive }) {
+                manager.cancel(Constants.NOTIFICATION_SERVICE_ID)
+            } else {
+                safeNotify(Constants.NOTIFICATION_SERVICE_ID, buildActiveNotification(jobs))
+            }
+            safeNotify(Constants.NOTIFICATION_RESULT_ID, buildResult(job))
         }
-        manager.cancel(idFor(job))
-        safeNotify(id, buildResult(job))
     }
 
     fun cancel(job: DownloadJob) {
-        runCatching { manager.cancel(idFor(job)) }
+        // Kept for callers compiled against the original API. Queue-aware callers should use
+        // refreshProgress so another active job is never hidden accidentally.
+        if (job.status.isTerminal) refreshProgress(emptyList())
     }
 
     fun cancelAll() {
-        runCatching { manager.cancelAll() }
+        synchronized(progressLock) {
+            lastProgressNotificationAt = 0L
+            runCatching { manager.cancelAll() }
+        }
     }
 
     /** POST_NOTIFICATIONS may be denied; never crash because of it. */

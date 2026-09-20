@@ -1,4 +1,4 @@
-# HANDOFF · ReelDrop (ManuInstaDownloaderAppAndroid)
+# HANDOFF · Manu ReelDrop (ManuInstaDownloaderAppAndroid)
 
 ## Instrucción principal (leer siempre primero)
 
@@ -21,20 +21,21 @@ git push origin main
 ```
 
 Nunca dejes cambios importantes solo en local. Si el APK cambia, súbelo otra vez y publica una
-release nueva (v1.0.0 → v1.0.1 para cambios posteriores).
+release nueva (la siguiente es v1.1.0).
 
 ---
 
 ## 1. Qué es el proyecto
 
-App Android (Kotlin + Jetpack Compose) para descargar videos de Instagram usando un servidor
+App Android (Kotlin + Jetpack Compose) para descargar vídeos de Instagram, YouTube y Facebook usando un servidor
 propio (Termux + PHP + yt-dlp). Sustituye a la web original (`index.php` + `api.php`),
 aprovechando su lógica y ampliándola con cola de trabajos, progreso en vivo, biblioteca,
 notificaciones, temas y configuración avanzada.
 
-* **Nombre elegido:** ReelDrop (alternativas: InstaVault, ReelVault, ManuReels, ReelGrab).
+* **Nombre visible:** Manu ReelDrop. Se conserva el paquete `com.manu.reeldrop` y la ruta
+  `Movies/ReelDrop` para compatibilidad.
 * **Paquete Android:** `com.manu.reeldrop` (debug: `com.manu.reeldrop.debug`).
-* **Versión:** 1.0.0 (versionCode 1).
+* **Versión de código:** 1.1.0 (versionCode 2); los APK incluidos siguen siendo la referencia 1.0.0.
 * **Autor:** Manuel Almaguer Sosa · manu004@atomicmail.io.
 
 ---
@@ -46,29 +47,35 @@ notificaciones, temas y configuración avanzada.
 | Análisis de la web original (zip) | Hecho (index.php, api.php, style.css, app.js) |
 | Proyecto Android completo | Hecho (≈40 archivos Kotlin, recursos, temas, tests) |
 | Servidor PHP 2.0 con cola de trabajos | Hecho (api.php, lib/*, panel web, instalador) |
-| APK debug compilado y verificado | Hecho: `BUILD SUCCESSFUL` |
-| APK release firmado | Hecho: ver `release/` |
+| APK debug compilado y verificado | Referencia existente v1.0.0; la build 1.1.0 queda para CI/Android SDK |
+| APK release firmado | Referencia 1.0.0 en `release/`; publicar 1.1.0 tras compilar con SDK/CI |
 | README + docs + HANDOFF | Hecho |
 | Publicado en `main` | Hecho (ver historial de commits) |
 
 ### Qué se ha implementado exactamente
 
-* **App**: pantalla de descarga con validación de enlaces de Instagram, pegado desde el
-  portapapeles y recepción por *share* de Instagram; selector de calidad; cola de descargas
+* **App**: pantalla de descarga con validación de enlaces de Instagram, YouTube y Facebook,
+  pegado desde el portapapeles y recepción por *share*; selector de calidad; cola de descargas
   con progreso, velocidad, ETA y tamaño; biblioteca con miniaturas, reproductor Media3,
   guardado en el dispositivo y borrado remoto; ajustes completos; pantalla *Acerca de*.
 * **Motor de descargas**: cola persistente (JSON atómico), concurrencia configurable, SSE con
   *fallback* a polling, reintentos con backoff exponencial + jitter, modo compatible con el
   `api.php` antiguo y auto-guardado en el dispositivo o en una carpeta SAF elegida por el
   usuario.
-* **Notificaciones**: servicio en primer plano, notificación de progreso con acciones,
-  resumen agrupado, notificación de resultado (abrir/reintentar) y canales independientes.
-* **Temas**: 8 paletas + claro/oscuro/automático + Material You.
+* **Notificaciones**: servicio en primer plano y una única tarjeta de progreso agrupada para toda
+  la cola, con velocidad, tamaño, ETA y acción de cancelar; resultado reutilizable (abrir/reintentar)
+  y canales independientes para evitar tarjetas duplicadas o acumuladas.
+* **Biblioteca**: pestañas para servidor, carpeta del teléfono y temporales; estos últimos se
+  consultan y eliminan mediante `temporary`/`temporary-delete` sin bloquear el hilo visual.
+* **Temas**: 12 paletas + claro/oscuro/automático + Material You.
 * **Permisos**: sección propia con estado, petición individual o masiva y acceso a los ajustes
   del sistema (incluida la exención de batería).
-* **Servidor**: acciones `health`, `job-create`, `job`, `jobs`, `events`, `job-cancel`,
+* **Servidor**: acepta hosts de Instagram, YouTube y Facebook mediante `allowed_hosts` (incluidos
+  automáticamente al migrar configuraciones antiguas); acciones
+  `health`, `job-create`, `job`, `jobs`, `events`, `job-cancel`,
   `job-retry`, `job-delete`, `job-cancel-all`, `library`, `library-delete`, `file` (con
-  rangos HTTP), `thumb`, `cleanup` y compatibilidad total con la API antigua.
+  rangos HTTP), `thumb`, `temporary`, `temporary-delete`, `cleanup` y compatibilidad total con
+  la API antigua.
 
 ---
 
@@ -98,7 +105,7 @@ export ANDROID_HOME=$HOME/android-sdk
 ./gradlew lint                 # informe de lint
 ```
 
-Servidor en local:
+Servidor en Termux (la app no inicia este proceso ni abre el puerto):
 
 ```bash
 cd server && cp config.example.php config.php && ./start.sh
@@ -109,7 +116,7 @@ curl "http://127.0.0.1:8080/api.php?action=health"
 
 ## 5. Pendientes y siguientes pasos (por orden sugerido)
 
-1. **Probar en el móvil real**: instalar el APK, configurar el servidor y completar una
+1. **Probar en el móvil real**: instalar el APK 1.1.0 generado por CI, configurar el servidor y completar una
    descarga (progreso, notificación y biblioteca).
 2. **Código QR de configuración**: generar en `start.sh`/panel web un QR con `base_url` +
    token para configurar la app sin escribir nada.
@@ -120,14 +127,14 @@ curl "http://127.0.0.1:8080/api.php?action=health"
 6. **Widget de Android** con últimas descargas y acceso rápido.
 7. **Estadísticas** en *Acerca de*: total descargado, velocidad media, tiempo ahorrado.
 8. **Tests de instrumentación** (Compose UI tests) para home, cola y biblioteca.
-9. **Renombrar la app** si se elige otro nombre (paquete, cadenas, iconos).
+9. **Publicar el APK 1.1.0** generado por CI como nueva release cuando se valide en un móvil.
 10. **Repaso de textos**: ya hay `values` (inglés) y `values-es`; revisar traducciones nuevas.
 
 ---
 
 ## 6. Riesgos conocidos
 
-* Instagram cambia a menudo: si falla, `pip install -U yt-dlp` y, si hace falta,
+* Instagram, YouTube y Facebook cambian a menudo: si falla, `pip install -U yt-dlp` y, si hace falta,
   `cookies_file`.
 * La primera ejecución pide permisos; si el usuario los deniega, no habrá notificaciones hasta
   que los conceda en Ajustes → Permisos.

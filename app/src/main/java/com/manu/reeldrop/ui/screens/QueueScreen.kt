@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -75,12 +76,11 @@ class QueueViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun cancel(localId: String) {
         engine.cancel(localId)
-        DownloadService.cancel(app.applicationContext, localId)
     }
 
     fun retry(localId: String) {
         engine.retry(localId)
-        DownloadService.retry(app.applicationContext, localId)
+        DownloadService.start(app.applicationContext)
     }
 
     fun save(localId: String) = engine.saveToDevice(localId)
@@ -115,7 +115,7 @@ fun QueueScreen(
     val visible = viewModel.visibleJobs(allJobs)
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp, 18.dp, 16.dp, 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

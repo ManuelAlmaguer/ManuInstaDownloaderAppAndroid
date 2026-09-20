@@ -22,10 +22,10 @@ object Constants {
     const val CHANNEL_SERVICE = "reeldrop_service"
 
     const val NOTIFICATION_SERVICE_ID = 1001
-    const val NOTIFICATION_RESULT_BASE_ID = 2000
-    const val NOTIFICATION_ERROR_BASE_ID = 3000
+    const val NOTIFICATION_RESULT_ID = 2000
 
     const val ACTION_CANCEL = "com.manu.reeldrop.action.CANCEL_JOB"
+    const val ACTION_CANCEL_ALL = "com.manu.reeldrop.action.CANCEL_ALL"
     const val ACTION_RETRY = "com.manu.reeldrop.action.RETRY_JOB"
     const val ACTION_OPEN_APP = "com.manu.reeldrop.action.OPEN"
     const val ACTION_STOP_SERVICE = "com.manu.reeldrop.action.STOP_SERVICE"
@@ -44,5 +44,5 @@ object Constants {
     const val GITHUB_REPO = "https://github.com/ManuelAlmaguer/ManuInstaDownloaderAppAndroid"
     const val AUTHOR_NAME = "Manuel Almaguer Sosa"
     const val AUTHOR_EMAIL = "manu004@atomicmail.io"
-    const val APP_NAME = "ReelDrop"
+    const val APP_NAME = "Manu ReelDrop"
 }

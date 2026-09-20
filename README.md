@@ -1,15 +1,15 @@
-# ReelDrop
+# Manu ReelDrop
 
-**Descargador de Instagram para Android con tu propio servidor (Termux + yt-dlp).**
+**Descargador de vídeos para Android con tu propio servidor (Termux + yt-dlp).**
 
-ReelDrop es una app Android nativa (Kotlin + Jetpack Compose) que descarga reels,
-publicaciones, historias e IGTV usando **tu** servidor: puede ser Termux en el mismo móvil,
+Manu ReelDrop es una app Android nativa (Kotlin + Jetpack Compose) que descarga vídeos de
+Instagram, YouTube y Facebook usando **tu** servidor: puede ser Termux en el mismo móvil,
 un PC de tu red local o un servidor publicado en Internet. La app nunca envía tus enlaces a
 terceros: solo habla con la dirección que tú configures.
 
-Nombre elegido: **ReelDrop** (Reel + Drop). Alternativas por si prefieres cambiarlo:
-*InstaVault*, *ReelVault*, *ManuReels*, *ReelGrab*, *DropReel*. El nombre está en un solo
-sitio (`app/src/main/res/values/strings.xml`), así que renombrarlo es un cambio de minutos.
+El nombre visible actual es **Manu ReelDrop**. Se mantiene el paquete Android y la ruta
+`Movies/ReelDrop` para no romper instalaciones anteriores. El icono anterior se conserva en
+`app/src/main/res/drawable/ic_launcher_legacy_*`.
 
 ---
 
@@ -43,11 +43,16 @@ sitio (`app/src/main/res/values/strings.xml`), así que renombrarlo es un cambio
 | `app/` | Código fuente de la app Android (Kotlin, Jetpack Compose, Material 3). |
 | `server/` | Servidor PHP + yt-dlp para Termux (cola de trabajos, progreso, biblioteca, miniaturas). |
 | `docs/` | Documentación detallada: API, servidor y arquitectura. |
-| `release/` | APK listos para instalar (`ReelDrop-v1.0.0.apk`). |
+| `release/` | APK de referencia listos para instalar (`ReelDrop-v1.0.0.apk`). |
 | `HANDOFF.md` | Estado del proyecto, decisiones y siguientes pasos. |
 
 El servidor es compatible con el `api.php` original de la web: puedes actualizar la carpeta y
 todo lo que ya tenías sigue funcionando.
+
+La lámina [docs/screenshots/pestanas.png](docs/screenshots/pestanas.png) muestra la maqueta
+visual actualizada de Descargar, Descargas, Biblioteca y Ajustes. Es una referencia visual
+renderizada del proyecto; para capturas de ejecución real hace falta instalar la build en un
+dispositivo o emulador Android.
 
 ---
 
@@ -70,6 +75,8 @@ todo lo que ya tenías sigue funcionando.
 
 * El servidor **descarga** (yt-dlp) y guarda el archivo.
 * La app **manda enlaces, muestra progreso y gestiona** la cola, el historial y la biblioteca.
+* La app **no levanta PHP ni abre el puerto 8080**: ese proceso se ejecuta en Termux (o en el
+  servidor que elijas) y la app solo se conecta a la URL configurada.
 * La comunicación usa *server-sent events* para el progreso en tiempo real y, si el stream se
   corta, la app cambia automáticamente a *polling*.
 * Cada trabajo se guarda en un JSON del servidor, así que puedes cerrar la app, reiniciar el
@@ -267,8 +274,8 @@ cd ManuInstaDownloaderAppAndroid
 
 ## 8. Funciones de la app
 
-* **Descargar por URL**: pega el enlace, elígelo desde la biblioteca o comparte desde
-  Instagram (*Compartir → ReelDrop*).
+* **Descargar por URL**: pega el enlace o comparte vídeos desde Instagram, YouTube o Facebook
+  (*Compartir → Manu ReelDrop*).
 * **Cola de descargas** con estados en vivo: en cola, descargando, procesando, reintentando,
   completado, error.
 * **Progreso en tiempo real**: porcentaje, velocidad, tamaño descargado/total y tiempo
@@ -283,7 +290,9 @@ cd ManuInstaDownloaderAppAndroid
   guardar en el teléfono, compartir, eliminar del servidor o buscar.
 * **Carpeta personalizada** en el teléfono o la tarjeta SD (sección 11).
 * **Notificaciones** de progreso y de resultado con acciones (sección 12).
-* **Temas** (8 paletas, claro/oscuro/automático, Material You) — sección 9.
+* **Temas** (12 paletas, claro/oscuro/automático, Material You) — sección 9.
+* **Biblioteca** con pestañas para el servidor, la carpeta del teléfono y los temporales del
+  servidor; los temporales se pueden revisar y borrar individualmente.
 * **Acerca de** con versión, autor, estado del servidor, privacidad y novedades.
 
 ---
@@ -300,6 +309,10 @@ Disponibles en **Ajustes → Temas**, se aplican al instante:
 | **Atardecer** | Naranja, rojo y rosa. |
 | **Bosque** | Verdes y lima. |
 | **Chicle** | Rosa y lavanda. |
+| **Cereza** | Carmesí, rosa y naranja. |
+| **Ártico** | Azul hielo e índigo. |
+| **Aurora** | Verde, cian y violeta. |
+| **Grafito** | Gris azulado de alto contraste. |
 | **Color dinámico** | Toma la paleta del fondo de pantalla (Android 12+). |
 | **Sistema** | Gris neutro, se adapta a claro/oscuro. |
 
@@ -319,7 +332,7 @@ en uno o todos a la vez:
 | **Videos y audio** | Leer los archivos guardados y mostrarlos en la biblioteca. | Recomendado |
 | **Descargas en segundo plano** (exención de batería) | Que Android no suspenda descargas largas. | Recomendado |
 
-También hay un botón **Abrir ajustes de ReelDrop en Android**. En el primer arranque la app
+También hay un botón **Abrir ajustes de Manu ReelDrop en Android**. En el primer arranque la app
 pide los permisos pendientes una sola vez.
 
 ---
@@ -335,6 +348,10 @@ documentos. La app guarda el permiso (SAF) y entonces:
   compartirlos desde la app,
 * puedes borrarlos con un toque.
 
+La pestaña **Biblioteca → Temporales** muestra los `.part`, `.ytdl`, `.tmp`, fragmentos y
+metadatos `.info.json` que yt-dlp haya dejado en el servidor. Puedes eliminar cada fichero
+desde la app o usar la limpieza global.
+
 Si no eliges carpeta, los videos se guardan en `Movies/ReelDrop` con el gestor de descargas de
 Android (o simplemente se quedan en el servidor, en `server/downloads`).
 
@@ -342,10 +359,10 @@ Android (o simplemente se quedan en el servidor, en `server/downloads`).
 
 ## 12. Notificaciones
 
-* **Progreso** (canal *Progreso de descargas*): porcentaje, velocidad, tamaño, tiempo
-  restante y botón *Cancelar*. Con varias descargas a la vez se agrupa en un resumen.
-* **Resultado** (canal *Resultados de descarga*): aviso al terminar (con *Abrir*) o al fallar
-  (con *Reintentar*).
+* **Progreso** (canal *Progreso de descargas*): una sola tarjeta para toda la cola, con
+  porcentaje medio, velocidad total, tamaño, tiempo restante y botón *Cancelar todo*.
+* **Resultado** (canal *Resultados de descarga*): una tarjeta reutilizable al terminar o
+  fallar, con *Abrir* o *Reintentar*, sin apilar una notificación por cada evento.
 
 El servicio en primer plano mantiene la cola viva con la app cerrada. Si no quieres
 notificaciones, desactívalas en Ajustes o en el sistema.
@@ -397,7 +414,9 @@ tiene token, envía `X-Api-Token: <token>` o `?token=<token>`.
 | `library-delete` | POST `{file}` | Borra un video del servidor. |
 | `file` | GET `?file=` | Streaming del video con soporte de rangos (buscar y reanudar). |
 | `thumb` | GET `?file=` | Miniatura JPEG (se genera con ffmpeg si hace falta). |
-| `cleanup` | POST | Borra temporales (`.part`, `.ytdl`, `.info.json`). |
+| `temporary` | GET | Lista temporales del directorio `downloads` con tamaño, fecha y tipo. |
+| `temporary-delete` | POST `{file}` | Borra un temporal validado individualmente. |
+| `cleanup` | POST | Borra temporales (`.part`, `.ytdl`, `.tmp`, fragmentos y `.info.json`). |
 | *Compatibilidad* | | `download-stream`, `list`, `delete` y `download` siguen funcionando como en la web original. |
 
 Detalles completos en [`docs/API.md`](docs/API.md).
@@ -436,7 +455,7 @@ publica los APK como artefactos.
 | «Token de API incorrecto o ausente» | Copia el token de `config.php` en Ajustes → Servidor. |
 | «yt-dlp no está instalado» | En Termux: `pkg install python && pip install -U yt-dlp`. |
 | «No se pudo generar la miniatura» | Falta ffmpeg: `pkg install ffmpeg`. |
-| La descarga se queda en «Procesando» | Instagram pide cookies o cambió el formato: `pip install -U yt-dlp` y, si hace falta, usa `cookies_file`. |
+| La descarga se queda en «Procesando» | La plataforma pide cookies o cambió el formato: `pip install -U yt-dlp` y, si hace falta, usa `cookies_file`. |
 | Fallos intermitentes de red | La app reintenta sola; puedes subir «Reintentos automáticos» en Ajustes. |
 | El móvil mata la descarga larga | Da a Termux batería «Sin restricciones» y activa «Descargas en segundo plano» en la app. |
 | No aparecen los videos en la galería | Usa **Biblioteca → Guardar** o configura una **carpeta personalizada**. |
@@ -472,8 +491,9 @@ ManuInstaDownloaderAppAndroid/
 
 ## 18. Aviso legal
 
-ReelDrop es una herramienta **personal** para descargar contenido de cuentas propias o con
-permiso, o material de dominio público. Respeta los términos de uso de Instagram y los
+Manu ReelDrop es una herramienta **personal** para descargar contenido propio o con
+permiso, o material de dominio público. Respeta los términos de uso de Instagram, YouTube,
+Facebook y los
 derechos de autor: no redistribuyas contenido ajeno.
 
 El servidor se ejecuta en tu dispositivo o en tu servidor; la app no envía datos a terceros.

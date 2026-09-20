@@ -85,6 +85,21 @@ data class LibraryEnvelope(
 )
 
 @Serializable
+data class TemporaryFileDto(
+    @SerialName("file") val file: String,
+    val size: Long = 0L,
+    val mtime: Long = 0L,
+    val kind: String = "Temporal",
+)
+
+@Serializable
+data class TemporaryEnvelope(
+    val ok: Boolean = false,
+    val items: List<TemporaryFileDto> = emptyList(),
+    val error: String? = null,
+)
+
+@Serializable
 data class SimpleResponse(
     val ok: Boolean = false,
     val error: String? = null,

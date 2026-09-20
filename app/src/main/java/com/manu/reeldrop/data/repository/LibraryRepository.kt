@@ -2,6 +2,7 @@ package com.manu.reeldrop.data.repository
 
 import com.manu.reeldrop.data.remote.ReelDropApi
 import com.manu.reeldrop.domain.LibraryItem
+import com.manu.reeldrop.domain.TemporaryFile
 
 class LibraryRepository(private val api: ReelDropApi) {
 
@@ -22,6 +23,17 @@ class LibraryRepository(private val api: ReelDropApi) {
         }
 
     suspend fun delete(name: String) = api.deleteLibraryItem(name)
+
+    suspend fun temporaryFiles(): List<TemporaryFile> = api.temporaryFiles().map { dto ->
+        TemporaryFile(
+            name = dto.file,
+            size = dto.size,
+            modified = dto.mtime * 1000L,
+            kind = dto.kind,
+        )
+    }
+
+    suspend fun deleteTemporary(name: String) = api.deleteTemporaryFile(name)
 
     suspend fun cleanup(): Pair<Int, Long> {
         val response = api.cleanup()

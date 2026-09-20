@@ -100,6 +100,14 @@ data class LibraryItem(
     val isVideo: Boolean get() = name.lowercase().let { it.endsWith(".mp4") || it.endsWith(".mkv") || it.endsWith(".webm") || it.endsWith(".mov") }
 }
 
+@Serializable
+data class TemporaryFile(
+    val name: String,
+    val size: Long = 0L,
+    val modified: Long = 0L,
+    val kind: String = "Temporal",
+)
+
 data class ServerHealth(
     val reachable: Boolean,
     val version: String? = null,
@@ -121,6 +129,10 @@ enum class AppTheme(val id: String, val label: String) {
     SUNSET("sunset", "Atardecer"),
     FOREST("forest", "Bosque"),
     CANDY("candy", "Chicle"),
+    ROSE("rose", "Cereza"),
+    ARCTIC("arctic", "Ártico"),
+    AURORA("aurora", "Aurora"),
+    GRAPHITE("graphite", "Grafito"),
     DYNAMIC("dynamic", "Color dinámico"),
     SYSTEM("system", "Sistema");
 

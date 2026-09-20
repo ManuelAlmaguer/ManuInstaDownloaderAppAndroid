@@ -5,41 +5,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Arrow stem -->
-    <path android:pathData="M48,26 h12 a5,5 0 0 1 5,5 v22 h-22 v-22 a5,5 0 0 1 5,-5 z">
+    <!-- A layered reel tile keeps the original download-arrow idea while adding depth. -->
+    <path android:pathData="M27,18 h54 a10,10 0 0 1 10,10 v52 a10,10 0 0 1,-10 10 h-54 a10,10 0 0 1,-10 -10 v-52 a10,10 0 0 1,10 -10 z">
         <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="32" android:startY="26"
-                android:endX="76" android:endY="86">
-                <item android:offset="0" android:color="#A855F7" />
-                <item android:offset="0.5" android:color="#EC4899" />
-                <item android:offset="1" android:color="#F97316" />
+            <gradient android:type="linear" android:startX="18" android:startY="18" android:endX="90" android:endY="90">
+                <item android:offset="0" android:color="#5EA855F7" />
+                <item android:offset="0.52" android:color="#4DEC4899" />
+                <item android:offset="1" android:color="#55F97316" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Arrow head -->
-    <path android:pathData="M34,49 L74,49 L54,74 z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="34" android:startY="49"
-                android:endX="74" android:endY="74">
-                <item android:offset="0" android:color="#EC4899" />
-                <item android:offset="1" android:color="#F97316" />
-            </gradient>
-        </aapt:attr>
-    </path>
-    <!-- Arrow tray -->
-    <path android:pathData="M36,79 h36 a5,5 0 0 1 0,10 h-36 a5,5 0 0 1 0,-10 z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="36" android:startY="79"
-                android:endX="72" android:endY="89">
-                <item android:offset="0" android:color="#F97316" />
-                <item android:offset="1" android:color="#FBBF24" />
-            </gradient>
-        </aapt:attr>
-    </path>
+    <path android:fillColor="#24FFFFFF" android:pathData="M27,24 h54 a4,4 0 0 1,4 4 v3 h-62 v-3 a4,4 0 0 1,4 -4 z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M49,30 h10 a5,5 0 0 1,5 5 v21 h-20 v-21 a5,5 0 0 1,5 -5 z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M34,50 L74,50 L54,76 z" />
+    <path android:fillColor="#FFFFC857" android:pathData="M36,80 h36 a5,5 0 0 1,0 10 h-36 a5,5 0 0 1,0 -10 z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M78,31 l2.5,5.5 5.5,2.5 -5.5,2.5 -2.5,5.5 -2.5,-5.5 -5.5,-2.5 5.5,-2.5 z" />
+    <path android:fillColor="#FFFFC857" android:pathData="M29,68 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
 </vector>

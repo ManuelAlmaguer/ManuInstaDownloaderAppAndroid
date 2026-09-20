@@ -70,10 +70,12 @@ class DownloadEngine(
 
     suspend fun enqueue(url: String, qualityId: String? = null): Result<DownloadJob> {
         val cleanUrl = UrlUtils.extractUrl(url) ?: return Result.failure(
-            ApiException.Rejected("Pega un enlace válido de Instagram.", 400),
+            ApiException.Rejected("Pega un enlace válido de Instagram, YouTube o Facebook.", 400),
         )
-        if (!UrlUtils.isInstagramUrl(cleanUrl)) {
-            return Result.failure(ApiException.Rejected("Solo se admiten enlaces de Instagram (reel, post o historia).", 400))
+        if (!UrlUtils.isSupportedUrl(cleanUrl)) {
+            return Result.failure(
+                ApiException.Rejected("Solo se admiten enlaces de Instagram, YouTube o Facebook.", 400),
+            )
         }
         val quality = qualityId ?: settings.cached.qualityId
         val job = DownloadJob(
@@ -122,7 +124,7 @@ class DownloadEngine(
                 serverMessage = "Cancelado por el usuario",
             )
             jobStore.upsert(canceled)
-            notifications.cancel(canceled)
+            notifications.refreshProgress(jobStore.jobs.value)
         }
     }
 
@@ -142,8 +144,8 @@ class DownloadEngine(
     fun remove(localId: String) {
         scope.launch {
             running.remove(localId)?.cancel()
-            jobStore.find(localId)?.let { notifications.cancel(it) }
             jobStore.remove(localId)
+            notifications.refreshProgress(jobStore.jobs.value)
         }
     }
 
@@ -223,7 +225,7 @@ class DownloadEngine(
                     )
                     if (retrying != null) {
                         jobStore.upsert(retrying)
-                        notifications.notifyProgress(retrying)
+                        notifications.notifyProgress(jobStore.jobs.value)
                     }
                     delay(delayMs)
                 } else {
@@ -235,7 +237,7 @@ class DownloadEngine(
                     )
                     if (failed != null) {
                         jobStore.upsert(failed)
-                        notifications.notifyResult(failed)
+                        notifications.notifyResult(failed, jobStore.jobs.value)
                     }
                     return
                 }
@@ -389,7 +391,7 @@ class DownloadEngine(
         jobStore.upsert(updated)
         if (updated.status.isTerminal) {
             if (updated.status == JobStatus.COMPLETED) maybeAutoSave(updated)
-            notifications.notifyResult(updated)
+            notifications.notifyResult(updated, jobStore.jobs.value)
         }
         return updated
     }
@@ -441,7 +443,7 @@ class DownloadEngine(
     }
 
     private fun publish(job: DownloadJob) {
-        if (settings.cached.notificationsEnabled) notifications.notifyProgress(job)
+        if (settings.cached.notificationsEnabled) notifications.notifyProgress(jobStore.jobs.value)
     }
 
     private fun humanError(error: Throwable): String = when (error) {

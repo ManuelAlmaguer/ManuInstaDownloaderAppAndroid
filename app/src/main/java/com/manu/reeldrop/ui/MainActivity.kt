@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT)
                 val url = UrlUtils.extractUrl(text)
-                if (url != null && UrlUtils.isInstagramUrl(url)) sharedUrl = url
+                if (url != null && UrlUtils.isSupportedUrl(url)) sharedUrl = url
             }
             Constants.ACTION_OPEN_APP -> {
                 openQueue = true

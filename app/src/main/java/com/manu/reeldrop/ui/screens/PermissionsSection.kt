@@ -84,7 +84,7 @@ fun PermissionsSection(onPermissionsRequested: () -> Unit) {
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "ReelDrop necesita estos permisos para descargar, avisarte del progreso y guardar los videos.",
+            "Manu ReelDrop necesita estos permisos para descargar, avisarte del progreso y guardar los videos.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -189,7 +189,7 @@ fun PermissionsSection(onPermissionsRequested: () -> Unit) {
         }
         TextButton(onClick = { openAppSettings(context) }) {
             Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("  Abrir ajustes de ReelDrop en Android")
+            Text("  Abrir ajustes de Manu ReelDrop en Android")
         }
     }
 }

@@ -2,12 +2,13 @@
 declare(strict_types=1);
 
 /**
- * ReelDrop server API.
+ * Manu ReelDrop server API.
  *
  * One entry point, one action per request:
  *
  *   health, job-create, job, jobs, events, job-cancel, job-retry, job-delete,
  *   job-cancel-all, library, library-delete, file, thumb, cleanup
+ *   temporary, temporary-delete
  *
  * plus the legacy actions of the original web app (download-stream, list, delete, download)
  * so the old index.php keeps working.
@@ -37,8 +38,8 @@ switch ($action) {
         $ytdlp = reeldrop_ytdlp();
         reeldrop_json([
             'ok' => true,
-            'app' => 'ReelDrop Server',
-            'version' => (string) reeldrop_config_value('app_version', '2.0.0'),
+            'app' => 'Manu ReelDrop Server',
+            'version' => (string) reeldrop_config_value('app_version', '2.1.0'),
             'ytdlp' => $ytdlp,
             'ytdlp_version' => reeldrop_binary_version($ytdlp),
             'ffmpeg' => reeldrop_ffmpeg() !== null,
@@ -63,7 +64,7 @@ switch ($action) {
             $quality = (string) reeldrop_config_value('default_quality', 'best');
         }
         if (!reeldrop_is_allowed_url($url)) {
-            reeldrop_error('Solo se permiten enlaces de Instagram.', 400);
+            reeldrop_error('Solo se permiten enlaces de Instagram, YouTube o Facebook.', 400);
         }
         if (reeldrop_ytdlp() === null) {
             reeldrop_error('yt-dlp no está instalado en el servidor.', 503);
@@ -181,6 +182,24 @@ switch ($action) {
         }
         reeldrop_json(['ok' => true]);
 
+    case 'temporary':
+        reeldrop_json(['ok' => true, 'items' => reeldrop_temporary_list()]);
+
+    case 'temporary-delete':
+        $body = reeldrop_request_body();
+        $file = reeldrop_safe_name((string) ($body['file'] ?? reeldrop_param('file', '')));
+        if ($file === null || !reeldrop_is_temporary($file)) {
+            reeldrop_error('Fichero temporal inválido.', 400);
+        }
+        $path = reeldrop_downloads_dir() . '/' . $file;
+        if (!is_file($path)) {
+            reeldrop_error('El fichero temporal no existe.', 404);
+        }
+        if (!@unlink($path)) {
+            reeldrop_error('No se pudo eliminar el fichero temporal.', 500);
+        }
+        reeldrop_json(['ok' => true]);
+
     case 'thumb':
         $file = reeldrop_safe_name((string) reeldrop_param('file', ''));
         if ($file === null) {
@@ -217,7 +236,7 @@ switch ($action) {
         $url = trim((string) ($body['url'] ?? reeldrop_param('url', '')));
         if (!reeldrop_is_allowed_url($url)) {
             reeldrop_sse_start();
-            reeldrop_sse(['type' => 'error', 'error' => 'Solo se permiten enlaces de Instagram.']);
+            reeldrop_sse(['type' => 'error', 'error' => 'Solo se permiten enlaces de Instagram, YouTube o Facebook.']);
             exit;
         }
         reeldrop_legacy_stream($url);
@@ -325,7 +344,7 @@ function reeldrop_legacy_stream(string $url): void
     }
 
     reeldrop_sse_start();
-    reeldrop_sse(['type' => 'start', 'message' => 'Conectando con Instagram…']);
+    reeldrop_sse(['type' => 'start', 'message' => 'Conectando con la plataforma…']);
 
     $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
     $process = @proc_open($command, $descriptors, $pipes);

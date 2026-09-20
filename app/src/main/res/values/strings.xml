@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ReelDrop</string>
+    <string name="app_name">Manu ReelDrop</string>
     <string name="app_tagline">Descarga reels a la velocidad de tu servidor</string>
 
     <!-- Navigation -->
@@ -21,7 +21,7 @@
     <string name="notif_action_share">Compartir</string>
 
     <!-- Content descriptions -->
-    <string name="cd_logo">Logotipo de ReelDrop</string>
+    <string name="cd_logo">Logotipo de Manu ReelDrop</string>
     <string name="cd_play">Reproducir</string>
     <string name="cd_thumbnail">Miniatura del video</string>
 </resources>

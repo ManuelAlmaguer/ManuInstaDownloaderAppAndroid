@@ -19,8 +19,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
             }
             Constants.ACTION_RETRY -> if (localId.isNotBlank()) {
                 ServiceLocator.engine.retry(localId)
-                DownloadService.retry(context, localId)
+                DownloadService.start(context)
             }
+            Constants.ACTION_CANCEL_ALL -> ServiceLocator.engine.cancelAll()
             Constants.ACTION_OPEN_APP -> {
                 val open = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

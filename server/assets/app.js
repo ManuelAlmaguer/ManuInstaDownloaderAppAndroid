@@ -1,4 +1,4 @@
-/* ReelDrop Server - panel web. Habla con la API de trabajos (api.php?action=…). */
+/* Manu ReelDrop Server - panel web. Habla con la API de trabajos (api.php?action=…). */
 
 const API = 'api.php';
 const TOKEN = (window.REELDROP_TOKEN || '').trim();
@@ -214,7 +214,7 @@ async function loadLibrary() {
 async function startDownload() {
   const url = ($urlInput.value || '').trim();
   if (!url) {
-    showStatus('Pega primero un enlace de Instagram.', 'error');
+    showStatus('Pega primero un enlace de Instagram, YouTube o Facebook.', 'error');
     return;
   }
   hideStatus();

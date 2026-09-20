@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
 /**
@@ -58,7 +59,7 @@ class DownloadService : Service() {
             Constants.ACTION_CANCEL -> intent.getStringExtra(Constants.EXTRA_LOCAL_ID)?.let {
                 ServiceLocator.engine.cancel(it)
             }
-            ACTION_CANCEL_ALL -> ServiceLocator.engine.cancelAll()
+            Constants.ACTION_CANCEL_ALL -> ServiceLocator.engine.cancelAll()
             Constants.ACTION_STOP_SERVICE -> {
                 ServiceLocator.engine.cancelAll()
                 stopSelf()
@@ -70,26 +71,21 @@ class DownloadService : Service() {
     private fun observeJobs() {
         observer?.cancel()
         observer = scope.launch {
-            ServiceLocator.jobStore.jobs.collectLatest { jobs ->
-                val active = jobs.filter { it.isActive }
-                lastActiveCount = active.size
-                if (active.isEmpty()) {
-                    ServiceCompat.stopForeground(this@DownloadService, ServiceCompat.STOP_FOREGROUND_REMOVE)
-                    releaseWakeLock()
-                    stopSelf()
-                } else {
-                    val notification = if (active.size == 1) {
-                        ServiceLocator.notifications.buildProgress(active.first())
+            ServiceLocator.jobStore.jobs
+                .debounce(350)
+                .collectLatest { jobs ->
+                    val active = jobs.filter { it.isActive }
+                    lastActiveCount = active.size
+                    if (active.isEmpty()) {
+                        ServiceCompat.stopForeground(this@DownloadService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                        releaseWakeLock()
+                        stopSelf()
                     } else {
-                        ServiceLocator.notifications.buildSummary(jobs)
+                        val notification = ServiceLocator.notifications.buildActiveNotification(active)
+                        startForegroundSafely(notification)
+                        updateWakeLock()
                     }
-                    startForegroundSafely(notification)
-                    if (active.size > 1) {
-                        active.forEach { ServiceLocator.notifications.notifyProgress(it) }
-                    }
-                    updateWakeLock()
                 }
-            }
         }
     }
 
@@ -138,13 +134,13 @@ class DownloadService : Service() {
 
     companion object {
         const val ACTION_ENQUEUE = "com.manu.reeldrop.action.ENQUEUE"
-        const val ACTION_CANCEL_ALL = "com.manu.reeldrop.action.CANCEL_ALL"
+        const val ACTION_START = "com.manu.reeldrop.action.START"
         private const val EXTRA_QUALITY = "extra_quality"
 
         /** Starts the service, degrading to WorkManager when the OS forbids a background start. */
         fun start(context: Context, url: String? = null, quality: String? = null) {
             val intent = Intent(context, DownloadService::class.java).apply {
-                action = ACTION_ENQUEUE
+                action = if (url.isNullOrBlank()) ACTION_START else ACTION_ENQUEUE
                 putExtra(Constants.EXTRA_URL, url)
                 putExtra(EXTRA_QUALITY, quality)
             }
@@ -179,7 +175,7 @@ class DownloadService : Service() {
 
         suspend fun idleMessage(): String {
             delay(0)
-            return "ReelDrop listo"
+            return "${Constants.APP_NAME} listo"
         }
 
         fun activeCount(): Int = ServiceLocator.engine.activeJobs().size

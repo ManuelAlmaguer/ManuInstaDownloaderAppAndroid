@@ -19,7 +19,7 @@ $tokenSuffix = $token === '' ? '' : '&token=' . rawurlencode($token);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#0b0b10">
-<title>ReelDrop Server</title>
+<title>Manu ReelDrop Server</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -39,9 +39,9 @@ $tokenSuffix = $token === '' ? '' : '&token=' . rawurlencode($token);
         <path d="M12 6v9m0 0l-3.5-3.5M12 15l3.5-3.5M7.5 18.5h9"/>
       </svg>
     </div>
-    <h1>ReelDrop Server</h1>
+    <h1>Manu ReelDrop Server</h1>
     <p class="subtitle">
-      Panel del servidor · v<?= htmlspecialchars((string) reeldrop_config_value('app_version', '2.0.0')) ?>
+      Panel del servidor · v<?= htmlspecialchars((string) reeldrop_config_value('app_version', '2.1.0')) ?>
       · <?= $ytdlp ? 'yt-dlp OK' : 'yt-dlp no instalado' ?>
       · libre <?= htmlspecialchars(reeldrop_bytes_human((float) $space['free_space'])) ?>
     </p>
@@ -53,10 +53,10 @@ $tokenSuffix = $token === '' ? '' : '&token=' . rawurlencode($token);
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
         <path d="M14 11a5 5 0 0 0-7.54.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
       </svg>
-      <input type="url" id="urlInput" placeholder="https://www.instagram.com/reel/..." autocomplete="off" spellcheck="false" inputmode="url">
+      <input type="url" id="urlInput" placeholder="Instagram, YouTube o Facebook…" autocomplete="off" spellcheck="false" inputmode="url">
     </label>
     <button id="downloadBtn" class="btn-primary">
-      <span class="btn-text">Descargar Reel</span>
+      <span class="btn-text">Descargar vídeo</span>
       <span class="btn-loader"></span>
     </button>
     <div id="status" class="status"></div>
@@ -131,7 +131,7 @@ $tokenSuffix = $token === '' ? '' : '&token=' . rawurlencode($token);
   </section>
 
   <footer class="subtitle" style="margin-top:24px;text-align:center">
-    ReelDrop · <?= htmlspecialchars(date('Y')) ?> · desarrollado por Manuel Almaguer Sosa
+    Manu ReelDrop · <?= htmlspecialchars(date('Y')) ?> · desarrollado por Manuel Almaguer Sosa
   </footer>
 </main>
 <script>

@@ -135,6 +135,74 @@ object Palettes {
         accent = Color(0xFFF472B6),
     )
 
+    val rose = ReelPalette(
+        theme = AppTheme.ROSE,
+        label = "Cereza",
+        gradient = listOf(Color(0xFFF43F5E), Color(0xFFEC4899), Color(0xFFF97316)),
+        darkBackground = Color(0xFF1A080E),
+        darkSurface = Color(0xFF28101B),
+        darkCard = Color(0xFF351522),
+        darkOnSurface = Color(0xFFFDE7EF),
+        darkMuted = Color(0xFFC98CA0),
+        lightBackground = Color(0xFFFFF4F7),
+        lightSurface = Color(0xFFFFFFFF),
+        lightCard = Color(0xFFFFE3EC),
+        lightOnSurface = Color(0xFF2B0D18),
+        lightMuted = Color(0xFF8B5365),
+        accent = Color(0xFFF43F5E),
+    )
+
+    val arctic = ReelPalette(
+        theme = AppTheme.ARCTIC,
+        label = "Ártico",
+        gradient = listOf(Color(0xFF38BDF8), Color(0xFF60A5FA), Color(0xFFA5B4FC)),
+        darkBackground = Color(0xFF06121F),
+        darkSurface = Color(0xFF0B1C2E),
+        darkCard = Color(0xFF102A43),
+        darkOnSurface = Color(0xFFE5F4FF),
+        darkMuted = Color(0xFF85A9C7),
+        lightBackground = Color(0xFFF1F8FF),
+        lightSurface = Color(0xFFFFFFFF),
+        lightCard = Color(0xFFDCEEFF),
+        lightOnSurface = Color(0xFF08203A),
+        lightMuted = Color(0xFF4B6C86),
+        accent = Color(0xFF0EA5E9),
+    )
+
+    val aurora = ReelPalette(
+        theme = AppTheme.AURORA,
+        label = "Aurora",
+        gradient = listOf(Color(0xFF34D399), Color(0xFF22D3EE), Color(0xFF8B5CF6)),
+        darkBackground = Color(0xFF061410),
+        darkSurface = Color(0xFF0C211B),
+        darkCard = Color(0xFF123027),
+        darkOnSurface = Color(0xFFE4FFF5),
+        darkMuted = Color(0xFF86B9A8),
+        lightBackground = Color(0xFFF0FCF8),
+        lightSurface = Color(0xFFFFFFFF),
+        lightCard = Color(0xFFDDF7EE),
+        lightOnSurface = Color(0xFF09251C),
+        lightMuted = Color(0xFF4E7669),
+        accent = Color(0xFF10B981),
+    )
+
+    val graphite = ReelPalette(
+        theme = AppTheme.GRAPHITE,
+        label = "Grafito",
+        gradient = listOf(Color(0xFFCBD5E1), Color(0xFF94A3B8), Color(0xFF475569)),
+        darkBackground = Color(0xFF0B0E12),
+        darkSurface = Color(0xFF131820),
+        darkCard = Color(0xFF1B2430),
+        darkOnSurface = Color(0xFFEEF2F7),
+        darkMuted = Color(0xFF9AA8B8),
+        lightBackground = Color(0xFFF5F7FA),
+        lightSurface = Color(0xFFFFFFFF),
+        lightCard = Color(0xFFE7ECF2),
+        lightOnSurface = Color(0xFF141A22),
+        lightMuted = Color(0xFF5F6B78),
+        accent = Color(0xFF64748B),
+    )
+
     val system = ReelPalette(
         theme = AppTheme.SYSTEM,
         label = "Sistema",
@@ -159,7 +227,9 @@ object Palettes {
         gradient = listOf(Color(0xFF6750A4), Color(0xFF7D5260), Color(0xFF625B71)),
     )
 
-    val all: List<ReelPalette> = listOf(neon, amoled, ocean, sunset, forest, candy, dynamic, system)
+    val all: List<ReelPalette> = listOf(
+        neon, amoled, ocean, sunset, forest, candy, rose, arctic, aurora, graphite, dynamic, system,
+    )
 
     fun of(theme: AppTheme): ReelPalette = all.firstOrNull { it.theme == theme } ?: neon
 }

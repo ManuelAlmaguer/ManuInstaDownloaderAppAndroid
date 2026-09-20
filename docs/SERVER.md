@@ -1,4 +1,8 @@
-# Servidor ReelDrop en Termux (guía detallada)
+# Servidor Manu ReelDrop en Termux (guía detallada)
+
+El servidor es una pieza separada: la app Android no inicia PHP, no abre el puerto 8080 y no
+necesita ejecutarse como servidor. En Termux ejecuta `start.sh`; la app solo se conecta a la
+URL que configures en **Ajustes → Servidor**.
 
 ## Instalación rápida
 
@@ -124,5 +128,6 @@ ls -la data/jobs/                                         # trabajos y su estado
 yt-dlp --version                                          # versión instalada
 ```
 
-Síntoma típico «la descarga se queda en procesando»: actualiza yt-dlp
-(`pip install -U yt-dlp`) y, si Instagram pide sesión, usa `cookies_file`.
+El servidor acepta enlaces de Instagram, YouTube y Facebook siempre que sus hosts estén en
+`allowed_hosts`. Síntoma típico «la descarga se queda en procesando»: actualiza yt-dlp
+(`pip install -U yt-dlp`) y, si la plataforma pide sesión, usa `cookies_file`.

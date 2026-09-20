@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.manu.reeldrop.core.Constants
 import com.manu.reeldrop.data.remote.HttpClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,7 +15,7 @@ import java.io.IOException
  * Everything related to the *optional* custom save folder.
  *
  * The user picks any folder with Android's system picker (internal storage, SD card,
- * Documents provider…), ReelDrop keeps a persistable permission and then:
+ * Documents provider…), Manu ReelDrop keeps a persistable permission and then:
  *  * copies finished downloads into that folder while reporting progress,
  *  * lists the videos already there so they can be played, shared or deleted from the app.
  */
@@ -86,7 +87,7 @@ object LocalFolder {
     ): Uri = withContext(Dispatchers.IO) {
         val root = DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
             ?: throw IOException("La carpeta seleccionada ya no está disponible. Vuelve a elegirla en Ajustes.")
-        if (!root.canWrite()) throw IOException("ReelDrop no tiene permiso de escritura en esa carpeta")
+        if (!root.canWrite()) throw IOException("${Constants.APP_NAME} no tiene permiso de escritura en esa carpeta")
 
         val safeName = sanitize(fileName)
         root.findFile(safeName)?.delete()

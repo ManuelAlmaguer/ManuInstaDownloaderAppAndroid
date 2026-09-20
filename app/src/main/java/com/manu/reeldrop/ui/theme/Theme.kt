@@ -21,8 +21,8 @@ val LocalIsDarkTheme = staticCompositionLocalOf { true }
 /**
  * Applies one of the ReelDrop themes.
  *
- *  * [theme] picks the palette (Neón Púrpura, AMOLED, Océano, Atardecer, Bosque, Chicle,
- *    Material You dynamic colour, or the neutral system palette).
+ *  * [theme] picks one of twelve palettes (Neón Púrpura, AMOLED, Océano, Atardecer, Bosque,
+ *    Chicle, Cereza, Ártico, Aurora, Grafito, Material You dynamic colour, or Sistema).
  *  * [mode] picks dark / light / follow-system.
  *  * [dynamicColor] enables Material You wallpaper colours on Android 12+.
  */

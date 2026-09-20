@@ -27,6 +27,54 @@ function reeldrop_is_media(string $file): bool
     return in_array($ext, reeldrop_media_extensions(), true);
 }
 
+function reeldrop_is_temporary(string $file): bool
+{
+    $name = basename($file);
+    return str_ends_with($name, '.part')
+        || str_ends_with($name, '.ytdl')
+        || str_ends_with($name, '.tmp')
+        || str_contains($name, '.part-Frag')
+        || str_ends_with($name, '.info.json');
+}
+
+function reeldrop_temporary_kind(string $file): string
+{
+    return match (true) {
+        str_ends_with($file, '.info.json') => 'Metadatos',
+        str_contains($file, '.part-Frag') => 'Fragmento',
+        str_ends_with($file, '.part') => 'Descarga parcial',
+        str_ends_with($file, '.ytdl') => 'Estado yt-dlp',
+        default => 'Temporal',
+    };
+}
+
+/** Lists yt-dlp leftovers so the Android library can remove them individually. */
+function reeldrop_temporary_list(): array
+{
+    $dir = reeldrop_downloads_dir();
+    if (!is_dir($dir)) {
+        return [];
+    }
+    $items = [];
+    foreach (glob($dir . '/*') ?: [] as $path) {
+        if (!is_file($path)) {
+            continue;
+        }
+        $file = basename($path);
+        if (!reeldrop_is_temporary($file)) {
+            continue;
+        }
+        $items[] = [
+            'file' => $file,
+            'size' => (int) @filesize($path),
+            'mtime' => (int) @filemtime($path),
+            'kind' => reeldrop_temporary_kind($file),
+        ];
+    }
+    usort($items, static fn(array $a, array $b): int => ($b['mtime'] ?? 0) <=> ($a['mtime'] ?? 0));
+    return $items;
+}
+
 function reeldrop_meta_path(string $file): string
 {
     return reeldrop_data_dir() . '/meta/' . $file . '.json';

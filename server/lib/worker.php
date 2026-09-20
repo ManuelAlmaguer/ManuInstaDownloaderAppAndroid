@@ -69,7 +69,7 @@ if ($command === null) {
 }
 
 $job['status'] = 'downloading';
-$job['message'] = 'Conectando con Instagram…';
+$job['message'] = 'Conectando con la plataforma…';
 $job['started_at'] = $job['started_at'] ?? time();
 $job['pid'] = getmypid();
 $job['attempts'] = (int) ($job['attempts'] ?? 0) + 1;
@@ -326,7 +326,7 @@ function reeldrop_capture_metadata(string $filePath): array
     return $meta;
 }
 
-/** Downloads the Instagram cover picture once, cached in data/thumbs. */
+/** Downloads the source cover picture once, cached in data/thumbs. */
 function reeldrop_store_thumbnail(string $file, string $remoteUrl, string $filePath): void
 {
     $target = reeldrop_thumb_path($file);
