@@ -43,7 +43,7 @@ El nombre visible actual es **Manu ReelDrop**. Se mantiene el paquete Android y 
 | `app/` | Código fuente de la app Android (Kotlin, Jetpack Compose, Material 3). |
 | `server/` | Servidor PHP + yt-dlp para Termux (cola de trabajos, progreso, biblioteca, miniaturas). |
 | `docs/` | Documentación detallada: API, servidor y arquitectura. |
-| `release/` | APK v1.2.0 listos para instalar y referencias históricas v1.1.0/v1.0.0. |
+| `release/` | APK v1.2.0, paquete del servidor v2.2.0 y referencias históricas v1.1.0/v1.0.0. |
 | `HANDOFF.md` | Estado del proyecto, decisiones y siguientes pasos. |
 
 El servidor es compatible con el `api.php` original de la web: puedes actualizar la carpeta y

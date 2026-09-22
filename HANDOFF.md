@@ -47,6 +47,7 @@ notificaciones, temas y configuración avanzada.
 | Análisis de la web original (zip) | Hecho (index.php, api.php, style.css, app.js) |
 | Proyecto Android completo | Hecho (≈40 archivos Kotlin, recursos, temas, tests) |
 | Servidor PHP 2.2.0 con cola de trabajos y análisis dinámico | Hecho (api.php, lib/*, panel web, instalador) |
+| Paquete de servidor para entregar | `release/ManuReelDrop-server-v2.2.0.zip`, sin `data/`, `downloads/` ni `logs/` |
 | APK debug compilado y verificado | `release/ManuReelDrop-v1.2.0-debug.apk`, generado por CI |
 | APK release firmado | `release/ManuReelDrop-v1.2.0.apk`, generado por CI; se conservan las referencias 1.1.0 y 1.0.0 |
 | README + docs + HANDOFF | Hecho |

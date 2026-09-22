@@ -9,6 +9,7 @@ se conservan como referencias para instalaciones anteriores.
 | `ManuReelDrop-v1.2.0-debug.apk` | Build de depuración (más pesada). Útil para probar cambios. |
 | `ManuReelDrop-v1.1.0.apk` | Release anterior conservada como referencia. |
 | `ManuReelDrop-v1.1.0-debug.apk` | Debug anterior conservado como referencia. |
+| `ManuReelDrop-server-v2.2.0.zip` | Servidor PHP actualizado para Termux, sin datos ni configuración privada. |
 | `ReelDrop-v1.0.0.apk` | Release histórica conservada para instalaciones anteriores. |
 | `ReelDrop-v1.0.0-debug.apk` | Debug histórico conservado para comparación. |
 
