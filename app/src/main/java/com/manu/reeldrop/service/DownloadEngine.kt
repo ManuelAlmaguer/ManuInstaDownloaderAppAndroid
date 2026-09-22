@@ -367,25 +367,36 @@ class DownloadEngine(
             "log" -> if (event.status != null) JobStatus.from(event.status) else current.status
             else -> if (event.status != null) JobStatus.from(event.status) else current.status
         }
-        val progress = event.progress?.toFloat()?.coerceIn(0f, 100f) ?: current.progress
+        val progressSource = event.message ?: event.phase
+        val parsedProgress = Formatters.parseProgressText(progressSource)
+        val readableMessage = listOfNotNull(event.message, event.phase)
+            .firstOrNull { it.isNotBlank() && !Formatters.isProgressText(it) }
+        val progress = event.progress?.toFloat()?.coerceIn(0f, 100f)
+            ?: parsedProgress?.progress
+            ?: current.progress
         val speedBps = event.speedBps?.takeIf { it > 0 }
             ?: Formatters.parseSpeedToBps(event.speed).takeIf { it > 0 }
+            ?: parsedProgress?.speedBps?.takeIf { it > 0 }
             ?: current.speedBps
         val updated = current.copy(
             serverId = event.id ?: current.serverId,
             status = status,
             progress = if (status == JobStatus.COMPLETED) 100f else progress,
             speedBps = if (status.isTerminal) 0 else speedBps,
-            speedText = event.speed ?: current.speedText,
-            etaSeconds = event.etaSeconds ?: Formatters.parseEtaToSeconds(event.eta) ?: current.etaSeconds,
-            downloadedBytes = event.downloadedBytes ?: current.downloadedBytes,
-            totalBytes = event.totalBytes ?: event.size ?: current.totalBytes,
+            speedText = event.speed?.takeUnless(Formatters::isProgressText)
+                ?: parsedProgress?.speedText
+                ?: current.speedText,
+            etaSeconds = event.etaSeconds ?: Formatters.parseEtaToSeconds(event.eta)
+                ?: parsedProgress?.etaSeconds
+                ?: current.etaSeconds,
+            downloadedBytes = event.downloadedBytes ?: parsedProgress?.downloadedBytes ?: current.downloadedBytes,
+            totalBytes = event.totalBytes ?: event.size ?: parsedProgress?.totalBytes ?: current.totalBytes,
             title = event.title ?: current.title,
             author = event.author ?: current.author,
             thumbnailUrl = event.thumbnail ?: current.thumbnailUrl,
             filename = event.filename ?: event.file ?: current.filename,
             errorMessage = event.error ?: if (status == JobStatus.FAILED) current.errorMessage ?: "Error en el servidor" else current.errorMessage,
-            serverMessage = event.message ?: event.phase ?: current.serverMessage,
+            serverMessage = readableMessage ?: if (parsedProgress != null) "Descargando…" else current.serverMessage,
             finishedAt = if (status.isTerminal) System.currentTimeMillis() else current.finishedAt,
         )
         jobStore.upsert(updated)

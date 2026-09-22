@@ -93,6 +93,26 @@ class Notifications(private val context: Context) {
         )
     }
 
+    private fun progressLabel(job: DownloadJob): String = Formatters.progressLabel(job.progress)
+
+    private fun speedLabel(job: DownloadJob): String = when {
+        job.speedBps > 0L -> Formatters.speed(job.speedBps)
+        !job.speedText.isNullOrBlank() && !Formatters.isProgressText(job.speedText) -> job.speedText.orEmpty()
+        else -> "Calculando velocidad…"
+    }
+
+    private fun etaLabel(job: DownloadJob): String =
+        Formatters.eta(job.etaSeconds).takeUnless { it == "—" } ?: "Calculando tiempo…"
+
+    private fun transferLabel(job: DownloadJob): String {
+        val downloaded = Formatters.bytes(job.downloadedBytes)
+        val total = Formatters.bytes(job.totalBytes.takeIf { it > 0L })
+        return if (job.totalBytes > 0L) listOf(downloaded, total).joinToString(" / ") else downloaded
+    }
+
+    private fun readableMessage(job: DownloadJob): String? =
+        job.serverMessage?.takeIf { it.isNotBlank() }?.takeUnless(Formatters::isProgressText)
+
     /** One compact, grouped notification for every active download. */
     fun buildActiveNotification(jobs: List<DownloadJob>): Notification {
         val active = jobs.filter { it.isActive }
@@ -100,21 +120,25 @@ class Notifications(private val context: Context) {
             (active.sumOf { it.progress.toDouble() } / active.size).toInt()
         }
         val totalSpeed = active.sumOf { it.speedBps }
+        val hasKnownProgress = active.any { it.progress > 0f || it.downloadedBytes > 0L || it.totalBytes > 0L }
         val single = active.size == 1
         val headline = if (single) active.first().displayTitle().take(60)
         else "${Constants.APP_NAME} · ${active.size} descargas"
         val summary = if (single) {
             val job = active.first()
-            "${job.progress.toInt()}% · ${if (job.speedBps > 0) Formatters.speed(job.speedBps) else "calculando velocidad…"}"
+            listOf(progressLabel(job), speedLabel(job), etaLabel(job)).joinToString(" · ")
         } else {
-            "$average% medio${if (totalSpeed > 0) " · ${Formatters.speed(totalSpeed)}" else ""}"
+            listOfNotNull(
+                average.toString() + "% medio",
+                totalSpeed.takeIf { it > 0L }?.let(Formatters::speed),
+            ).joinToString(" · ")
         }
         val builder = NotificationCompat.Builder(context, Constants.CHANNEL_PROGRESS)
             .setSmallIcon(R.drawable.ic_notification_download)
             .setContentTitle(headline)
             .setContentText(summary)
             .setSubText(if (single) "Descarga activa" else "Cola de descargas")
-            .setProgress(100, average.coerceIn(0, 100), active.none { it.totalBytes > 0 })
+            .setProgress(100, average.coerceIn(0, 100), !hasKnownProgress)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
@@ -132,18 +156,17 @@ class Notifications(private val context: Context) {
         if (single) {
             val job = active.first()
             val detail = buildString {
-                append("${job.progress.toInt()}%")
-                if (job.speedBps > 0) append(" · ${Formatters.speed(job.speedBps)}")
-                job.etaSeconds?.let { append(" · resta ${Formatters.eta(it)}") }
-                append("\n${Formatters.bytes(job.downloadedBytes)}")
-                if (job.totalBytes > 0) append(" / ${Formatters.bytes(job.totalBytes)}")
-                job.serverMessage?.takeIf { it.isNotBlank() }?.let { append("\n$it") }
+                append("Progreso: ").append(progressLabel(job))
+                append("\nVelocidad: ").append(speedLabel(job))
+                append("\nRestante: ").append(etaLabel(job))
+                append("\nTamaño: ").append(transferLabel(job))
+                readableMessage(job)?.let { append("\n").append(it) }
             }
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(detail))
         } else {
             builder.setStyle(NotificationCompat.InboxStyle().also { style ->
                 active.take(5).forEach { job ->
-                    style.addLine("${job.progress.toInt()}% · ${job.displayTitle().take(42)}")
+                    style.addLine(progressLabel(job) + " · " + job.displayTitle().take(42))
                 }
             })
         }

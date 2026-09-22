@@ -1,5 +1,6 @@
 package com.manu.reeldrop.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,9 +44,38 @@ fun JobCard(
     onCopyLink: () -> Unit,
 ) {
     val palette = LocalReelPalette.current
+    val readableMessage = job.serverMessage
+        ?.takeIf { it.isNotBlank() }
+        ?.takeUnless(Formatters::isProgressText)
+    val progressLabel = Formatters.progressLabel(job.progress)
+    val speedValue = when {
+        job.status.isTerminal -> "—"
+        job.speedBps > 0 -> Formatters.speed(job.speedBps)
+        !job.speedText.isNullOrBlank() && !Formatters.isProgressText(job.speedText) -> job.speedText.orEmpty()
+        job.status == JobStatus.QUEUED -> "En cola"
+        job.status == JobStatus.RETRYING -> "Reintentando"
+        job.status == JobStatus.PROCESSING -> "Procesando"
+        else -> "Calculando…"
+    }
+    val etaValue = when {
+        job.status.isTerminal -> "—"
+        job.status == JobStatus.QUEUED -> "Pendiente"
+        job.status == JobStatus.PROCESSING -> "Procesando"
+        job.etaSeconds != null -> Formatters.eta(job.etaSeconds)
+        else -> "Calculando…"
+    }
+    val transferValue = when {
+        job.totalBytes > 0L -> listOf(
+            Formatters.bytes(job.downloadedBytes),
+            Formatters.bytes(job.totalBytes),
+        ).joinToString(" / ")
+        job.downloadedBytes > 0L -> Formatters.bytes(job.downloadedBytes)
+        job.status == JobStatus.QUEUED -> "Esperando"
+        else -> "—"
+    }
 
     GlassCard(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = job.displayTitle(),
@@ -69,35 +99,58 @@ fun JobCard(
             Spacer(Modifier.width(12.dp))
             ProgressRing(
                 progress = job.fraction,
-                size = 62.dp,
-                strokeWidth = 7.dp,
+                size = 70.dp,
+                strokeWidth = 8.dp,
             ) {
                 Text(
-                    text = "${job.progress.toInt()}%",
+                    text = progressLabel,
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        LinearProgressGradient(progress = job.fraction)
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Progreso",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                progressLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = palette.accent,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        LinearProgressGradient(progress = job.fraction, height = 8.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            transferValue,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            StatChip(
+            JobMetric(
                 label = "Velocidad",
-                value = if (job.status == JobStatus.DOWNLOADING) Formatters.speed(job.speedBps) else "—",
+                value = speedValue,
                 modifier = Modifier.weight(1f),
             )
-            StatChip(
+            JobMetric(
                 label = "Restante",
-                value = if (job.status == JobStatus.DOWNLOADING) Formatters.eta(job.etaSeconds) else "—",
+                value = etaValue,
                 modifier = Modifier.weight(1f),
             )
-            StatChip(
+            JobMetric(
                 label = "Tamaño",
                 value = Formatters.bytes(job.totalBytes.takeIf { it > 0 } ?: job.downloadedBytes),
                 modifier = Modifier.weight(1f),
@@ -120,15 +173,22 @@ fun JobCard(
             }
         }
 
-        job.serverMessage?.takeIf { job.isActive && it.isNotBlank() }?.let { message ->
+        readableMessage?.takeIf { job.isActive }?.let { message ->
             Spacer(Modifier.height(8.dp))
-            Text(
-                message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    message,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         Spacer(Modifier.height(6.dp))
@@ -175,6 +235,37 @@ fun JobCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun JobMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(13.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.46f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)),
+    ) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 9.dp)) {
+            Text(
+                label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                value,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

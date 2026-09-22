@@ -8,6 +8,21 @@ import kotlin.math.abs
 /** Human readable formatting helpers shared by every screen. */
 object Formatters {
 
+    data class ParsedProgress(
+        val progress: Float,
+        val speedText: String? = null,
+        val etaSeconds: Long? = null,
+        val downloadedBytes: Long? = null,
+        val totalBytes: Long? = null,
+    ) {
+        val speedBps: Long get() = parseSpeedToBps(speedText)
+    }
+
+    private val progressLinePattern = Regex(
+        """^\s*(?:download:)?\s*(\d+(?:\.\d+)?)%\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\s*$""",
+        RegexOption.IGNORE_CASE,
+    )
+
     fun bytes(value: Long?): String {
         val v = value ?: 0L
         if (v <= 0) return "—"
@@ -48,6 +63,37 @@ object Formatters {
 
     fun percent(progress: Float, decimals: Int = 0): String =
         String.format(Locale.US, "%.${decimals}f%%", progress.coerceIn(0f, 100f))
+
+    /** Keeps fractional progress visible while it is still below ten percent. */
+    fun progressLabel(progress: Float): String =
+        percent(progress, if (progress > 0f && progress < 10f) 1 else 0)
+
+    /**
+     * Reads the compact progress line emitted by older ReelDrop servers.
+     *
+     * Example: 1.7%|35.16KiB/s|2:02|4844|N/A|46218825
+     */
+    fun parseProgressText(text: String?): ParsedProgress? {
+        val match = progressLinePattern.matchEntire(text?.trim().orEmpty()) ?: return null
+        val progress = match.groupValues[1].toFloatOrNull() ?: return null
+        val speed = match.groupValues[2].trim().takeUnless(::isPlaceholder)
+        val eta = match.groupValues[3].trim().takeUnless(::isPlaceholder)
+        val downloaded = match.groupValues[4].trim().toLongOrNull()
+        val estimate = match.groupValues[5].trim().toLongOrNull()
+        val total = match.groupValues[6].trim().toLongOrNull()
+        return ParsedProgress(
+            progress = progress.coerceIn(0f, 100f),
+            speedText = speed,
+            etaSeconds = parseEtaToSeconds(eta),
+            downloadedBytes = downloaded?.takeIf { it >= 0L },
+            totalBytes = (total?.takeIf { it > 0L } ?: estimate?.takeIf { it > 0L }),
+        )
+    }
+
+    fun isProgressText(text: String?): Boolean = parseProgressText(text) != null
+
+    private fun isPlaceholder(value: String): Boolean =
+        value.isBlank() || value.equals("N/A", true) || value.equals("Unknown", true)
 
     fun dateTime(epochMillis: Long?): String {
         val v = epochMillis ?: return "—"

@@ -36,4 +36,18 @@ class FormattersTest {
         assertEquals(125L, Formatters.parseEtaToSeconds("02:05"))
         assertNull(Formatters.parseEtaToSeconds("Unknown"))
     }
+
+    @Test
+    fun legacyProgressLineBecomesReadableMetrics() {
+        val parsed = Formatters.parseProgressText(
+            "0.1%|27.88KiB/s|26:57|4844|N/A|46218825",
+        )
+
+        assertEquals(0.1f, parsed?.progress ?: -1f, 0.001f)
+        assertEquals(28549L, parsed?.speedBps)
+        assertEquals(1617L, parsed?.etaSeconds)
+        assertEquals(4844L, parsed?.downloadedBytes)
+        assertEquals(46218825L, parsed?.totalBytes)
+        assertEquals("0.1%", Formatters.progressLabel(0.1f))
+    }
 }

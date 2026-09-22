@@ -64,7 +64,8 @@ notificaciones, temas y configuración avanzada.
   usuario.
 * **Notificaciones**: servicio en primer plano y una única tarjeta de progreso agrupada para toda
   la cola, con velocidad, tamaño, ETA y acción de cancelar; resultado reutilizable (abrir/reintentar)
-  y canales independientes para evitar tarjetas duplicadas o acumuladas.
+  y canales independientes para evitar tarjetas duplicadas o acumuladas. La tarjeta de descargas
+  usa bloques visuales etiquetados y descarta las líneas compactas heredadas del servidor.
 * **Biblioteca**: pestañas para servidor, carpeta del teléfono y temporales; estos últimos se
   consultan y eliminan mediante `temporary`/`temporary-delete` sin bloquear el hilo visual.
 * **Temas**: 12 paletas + claro/oscuro/automático + Material You.

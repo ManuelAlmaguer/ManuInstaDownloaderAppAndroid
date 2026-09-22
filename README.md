@@ -280,6 +280,8 @@ cd ManuInstaDownloaderAppAndroid
   completado, error.
 * **Progreso en tiempo real**: porcentaje, velocidad, tamaño descargado/total y tiempo
   restante, con anillo y barra de progreso.
+* **Presentación clara de descargas**: tarjetas con bloques separados para progreso, velocidad,
+  tiempo restante y tamaño, sin mostrar líneas técnicas del servidor al usuario.
 * **Gestión de descargas**: cancelar, reintentar, quitar del historial, cancelar todas,
   limpiar finalizadas. El historial sobrevive a reinicios.
 * **Reintentos automáticos** con espera progresiva (1,5 s → 3 s → 6 s…) más *jitter*, y
@@ -289,7 +291,8 @@ cd ManuInstaDownloaderAppAndroid
 * **Biblioteca** con miniaturas, duración y resolución: reproducir dentro de la app (Media3),
   guardar en el teléfono, compartir, eliminar del servidor o buscar.
 * **Carpeta personalizada** en el teléfono o la tarjeta SD (sección 11).
-* **Notificaciones** de progreso y de resultado con acciones (sección 12).
+* **Notificaciones** de progreso y de resultado con acciones (sección 12). La tarjeta muestra
+  métricas etiquetadas y legibles, incluso con servidores antiguos.
 * **Temas** (12 paletas, claro/oscuro/automático, Material You) — sección 9.
 * **Biblioteca** con pestañas para el servidor, la carpeta del teléfono y los temporales del
   servidor; los temporales se pueden revisar y borrar individualmente.
@@ -360,7 +363,10 @@ Android (o simplemente se quedan en el servidor, en `server/downloads`).
 ## 12. Notificaciones
 
 * **Progreso** (canal *Progreso de descargas*): una sola tarjeta para toda la cola, con
-  porcentaje medio, velocidad total, tamaño, tiempo restante y botón *Cancelar todo*.
+  porcentaje medio, velocidad total, tamaño, tiempo restante y botón *Cancelar todo*. En una
+  descarga individual, el detalle usa etiquetas de progreso, velocidad, restante y tamaño.
+  Las líneas compactas heredadas como 1.7%|35.16KiB/s|2:02|... se convierten en métricas
+  visuales antes de llegar a la tarjeta.
 * **Resultado** (canal *Resultados de descarga*): una tarjeta reutilizable al terminar o
   fallar, con *Abrir* o *Reintentar*, sin apilar una notificación por cada evento.
 
