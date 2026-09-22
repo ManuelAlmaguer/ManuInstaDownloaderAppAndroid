@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,7 @@ import com.manu.reeldrop.domain.DownloadJob
 import com.manu.reeldrop.domain.JobStatus
 import com.manu.reeldrop.service.DownloadService
 import com.manu.reeldrop.ui.components.EmptyState
+import com.manu.reeldrop.ui.components.ConfirmDialog
 import com.manu.reeldrop.ui.components.JobCard
 import com.manu.reeldrop.ui.components.SectionHeader
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,6 +115,9 @@ fun QueueScreen(
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     val visible = viewModel.visibleJobs(allJobs)
+    var pendingRemoval by remember { mutableStateOf<DownloadJob?>(null) }
+    var confirmClearFinished by remember { mutableStateOf(false) }
+    var confirmCancelAll by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -124,7 +129,7 @@ fun QueueScreen(
                 title = "Descargas",
                 subtitle = "${allJobs.count { it.isActive }} activas · ${allJobs.size} en total",
                 actionText = if (allJobs.any { it.isActive }) "Cancelar todas" else null,
-                onAction = { viewModel.cancelAll() },
+                onAction = { confirmCancelAll = true },
             )
         }
 
@@ -157,7 +162,7 @@ fun QueueScreen(
                     onCancel = { viewModel.cancel(job.localId) },
                     onRetry = { viewModel.retry(job.localId) },
                     onSave = { viewModel.save(job.localId) },
-                    onRemove = { viewModel.remove(job.localId) },
+                    onRemove = { pendingRemoval = job },
                     onCopyLink = { clipboard.setText(AnnotatedString(job.url)) },
                 )
             }
@@ -168,7 +173,7 @@ fun QueueScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    androidx.compose.material3.TextButton(onClick = { viewModel.clearFinished() }) {
+                    androidx.compose.material3.TextButton(onClick = { confirmClearFinished = true }) {
                         Icon(Icons.Filled.PlayCircle, contentDescription = null, modifier = Modifier.height(18.dp))
                         Text("  Limpiar finalizadas")
                     }
@@ -181,5 +186,40 @@ fun QueueScreen(
                 )
             }
         }
+    }
+
+    pendingRemoval?.let { job ->
+        ConfirmDialog(
+            title = "Quitar descarga",
+            message = "¿Quitar " + job.displayTitle() + " del historial? El archivo del servidor no se borrará.",
+            onConfirm = {
+                pendingRemoval = null
+                viewModel.remove(job.localId)
+            },
+            onDismiss = { pendingRemoval = null },
+        )
+    }
+    if (confirmClearFinished) {
+        ConfirmDialog(
+            title = "Limpiar finalizadas",
+            message = "Se eliminarán del historial todas las descargas completadas, fallidas o canceladas.",
+            onConfirm = {
+                confirmClearFinished = false
+                viewModel.clearFinished()
+            },
+            onDismiss = { confirmClearFinished = false },
+        )
+    }
+    if (confirmCancelAll) {
+        ConfirmDialog(
+            title = "Cancelar descargas",
+            message = "Se cancelarán todas las descargas activas. Esta acción no elimina los archivos ya guardados.",
+            confirmLabel = "Cancelar todas",
+            onConfirm = {
+                confirmCancelAll = false
+                viewModel.cancelAll()
+            },
+            onDismiss = { confirmCancelAll = false },
+        )
     }
 }

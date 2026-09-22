@@ -57,6 +57,32 @@ data class JobEnvelope(
 )
 
 @Serializable
+data class AnalysisResponse(
+    val ok: Boolean = false,
+    val media: MediaAnalysisDto? = null,
+    val error: String? = null,
+)
+
+@Serializable
+data class MediaAnalysisDto(
+    val id: String? = null,
+    val title: String? = null,
+    val author: String? = null,
+    val thumbnail: String? = null,
+    val duration: Double? = null,
+    val qualities: List<QualityOptionDto> = emptyList(),
+)
+
+@Serializable
+data class QualityOptionDto(
+    val id: String,
+    val label: String,
+    val description: String = "",
+    val height: Int? = null,
+    val kind: String = "video",
+)
+
+@Serializable
 data class JobsEnvelope(
     val ok: Boolean = false,
     val jobs: List<JobDto> = emptyList(),

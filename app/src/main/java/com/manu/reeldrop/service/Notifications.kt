@@ -59,10 +59,10 @@ class Notifications(private val context: Context) {
         system.createNotificationChannel(
             NotificationChannel(
                 Constants.CHANNEL_SERVICE,
-                context.getString(R.string.channel_progress_name),
+                context.getString(R.string.channel_service_name),
                 NotificationManager.IMPORTANCE_MIN,
             ).apply {
-                description = "Mantiene el servicio de descargas en segundo plano"
+                description = context.getString(R.string.channel_service_desc)
                 setShowBadge(false)
             },
         )
@@ -205,11 +205,20 @@ class Notifications(private val context: Context) {
         NotificationCompat.Builder(context, Constants.CHANNEL_SERVICE)
             .setSmallIcon(R.drawable.ic_notification_download)
             .setContentTitle(Constants.APP_NAME)
-            .setContentText("Preparando descarga…")
+            .setContentText("Listo para descargar")
+            .setSubText("Servicio en segundo plano")
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText(
+                    "El servicio está listo para recibir y procesar tus descargas.\n" +
+                        "Puedes volver a la aplicación cuando quieras.",
+                ),
+            )
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .setSilent(true)
             .setColor(0xFFA855F7.toInt())
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(contentIntent())
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
@@ -217,25 +226,36 @@ class Notifications(private val context: Context) {
     /** One reusable result card; a later result updates the same card instead of stacking. */
     fun buildResult(job: DownloadJob): Notification {
         val completed = job.status == JobStatus.COMPLETED
+        val sizeLabel = Formatters.bytes(job.totalBytes.takeIf { it > 0 } ?: job.downloadedBytes)
+        val resultTitle = job.displayTitle().take(80)
+        val resultDetail = if (completed) {
+            buildString {
+                append("Estado: Completada")
+                append("\nVideo: ").append(resultTitle)
+                append("\nTamaño: ").append(sizeLabel)
+                append("\nArchivo: ").append(job.filename ?: "archivo")
+                append("\nDestino: ").append(if (job.savedToDevice) "Servidor y teléfono" else "Servidor")
+            }
+        } else {
+            buildString {
+                append("Estado: Error")
+                append("\nVideo: ").append(resultTitle)
+                append("\nMotivo: ").append(job.errorMessage ?: "Error desconocido")
+                append("\nSugerencia: toca Reintentar para volver a intentarlo.")
+            }
+        }
         val builder = NotificationCompat.Builder(context, Constants.CHANNEL_RESULTS)
             .setSmallIcon(if (completed) R.drawable.ic_notification_done else R.drawable.ic_notification_error)
             .setContentTitle(if (completed) "Descarga completada" else "La descarga falló")
             .setContentText(
                 if (completed) {
-                    "${job.displayTitle().take(50)} · ${Formatters.bytes(job.totalBytes.takeIf { it > 0 } ?: job.downloadedBytes)}"
+                    "$resultTitle · $sizeLabel"
                 } else {
                     job.errorMessage?.take(120) ?: "Error desconocido"
                 },
             )
-            .setStyle(
-                NotificationCompat.BigTextStyle().bigText(
-                    if (completed) {
-                        "${Constants.APP_NAME}\n${job.displayTitle()}\nGuardado en el servidor como ${job.filename ?: "archivo"}."
-                    } else {
-                        "${Constants.APP_NAME}\n${job.errorMessage ?: "Error desconocido"}\nToca Reintentar para volver a intentarlo."
-                    },
-                ),
-            )
+            .setSubText(Constants.APP_NAME)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(resultDetail))
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setColor(if (completed) 0xFF34D399.toInt() else 0xFFF87171.toInt())

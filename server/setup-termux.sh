@@ -33,7 +33,7 @@ if [ ! -f config.php ]; then
   ' "$TOKEN"
   echo
   echo "  Token de API generado: $TOKEN"
-  echo "  (cópialo en la app: Ajustes -> Servidor -> Token de API)"
+  echo "  (guárdalo en Ajustes -> Servidor y activa Usar token de API cuando el servidor lo requiera)"
   echo
 fi
 

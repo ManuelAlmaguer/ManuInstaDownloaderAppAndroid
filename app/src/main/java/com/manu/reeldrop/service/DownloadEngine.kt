@@ -14,6 +14,7 @@ import com.manu.reeldrop.domain.JobStatus
 import com.manu.reeldrop.domain.Quality
 import com.manu.reeldrop.util.DeviceDownloads
 import com.manu.reeldrop.util.LocalFolder
+import com.manu.reeldrop.util.NetworkInfo
 import com.manu.reeldrop.util.UrlUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -166,6 +167,7 @@ class DownloadEngine(
         if (running.containsKey(job.localId)) return
         val coroutine = scope.launch {
             try {
+                waitForAllowedNetwork(job.localId)
                 gate.withSlot({ settings.cached.concurrentDownloads }) { runJob(job.localId) }
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -188,6 +190,20 @@ class DownloadEngine(
         coroutine.invokeOnCompletion { running.remove(job.localId) }
     }
 
+    private suspend fun waitForAllowedNetwork(localId: String) {
+        while (settings.cached.wifiOnly &&
+            !NetworkInfo.isLoopbackUrl(settings.cached.serverUrl) &&
+            !NetworkInfo.isWifiConnected(context)
+        ) {
+            jobStore.find(localId)?.let { current ->
+                if (current.status.isActive) {
+                    jobStore.upsert(current.copy(serverMessage = "Esperando conexión Wi‑Fi…"))
+                }
+            }
+            delay(Constants.POLL_INTERVAL_MS.coerceAtLeast(5_000L))
+        }
+    }
+
     private suspend fun runJob(localId: String) {
         var attempts = 0
         val maxAttempts = settings.cached.maxAttempts.coerceAtLeast(0)
@@ -196,6 +212,7 @@ class DownloadEngine(
             val current = jobStore.find(localId) ?: return
             if (current.status == JobStatus.CANCELED || current.status == JobStatus.COMPLETED) return
 
+            waitForAllowedNetwork(localId)
             attempts++
             val started = current.copy(
                 status = JobStatus.DOWNLOADING,
@@ -428,7 +445,7 @@ class DownloadEngine(
                     treeUri = current.saveFolderUri,
                     fileName = name,
                     url = url,
-                    token = current.apiToken,
+                    token = current.apiTokenForRequests,
                 ) { downloaded, total ->
                     val percent = if (total > 0) downloaded * 100 / total else 0
                     jobStore.upsert(

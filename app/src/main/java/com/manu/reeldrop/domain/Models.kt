@@ -83,6 +83,23 @@ enum class Quality(val id: String, val label: String, val description: String) {
     }
 }
 
+data class QualityOption(
+    val id: String,
+    val label: String,
+    val description: String,
+    val height: Int? = null,
+    val kind: String = "video",
+)
+
+data class LinkAnalysis(
+    val id: String? = null,
+    val title: String? = null,
+    val author: String? = null,
+    val thumbnailUrl: String? = null,
+    val durationSeconds: Double? = null,
+    val qualities: List<QualityOption> = emptyList(),
+)
+
 @Serializable
 data class LibraryItem(
     val name: String,

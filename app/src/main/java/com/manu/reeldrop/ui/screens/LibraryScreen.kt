@@ -64,6 +64,7 @@ import com.manu.reeldrop.core.ServiceLocator
 import com.manu.reeldrop.domain.LibraryItem
 import com.manu.reeldrop.domain.TemporaryFile
 import com.manu.reeldrop.ui.components.EmptyState
+import com.manu.reeldrop.ui.components.ConfirmDialog
 import com.manu.reeldrop.ui.components.GlassCard
 import com.manu.reeldrop.ui.components.SectionHeader
 import com.manu.reeldrop.ui.theme.LocalReelPalette
@@ -263,6 +264,10 @@ fun LibraryScreen(
     val context = LocalContext.current
     val palette = LocalReelPalette.current
     var playing by remember { mutableStateOf<LibraryItem?>(null) }
+    var pendingLocalDelete by remember { mutableStateOf<LocalFolder.LocalVideo?>(null) }
+    var pendingServerDelete by remember { mutableStateOf<LibraryItem?>(null) }
+    var pendingTemporaryDelete by remember { mutableStateOf<TemporaryFile?>(null) }
+    var confirmCleanup by remember { mutableStateOf(false) }
 
     val visible = viewModel.filtered()
     val visibleTemporary = viewModel.filteredTemporary()
@@ -287,7 +292,7 @@ fun LibraryScreen(
                 },
                 actionText = if (state.source == LibrarySource.DEVICE) null
                 else if (state.cleaningUp) "Limpiando…" else "Limpiar temporales",
-                onAction = { if (state.source != LibrarySource.DEVICE) viewModel.cleanup() },
+                onAction = { if (state.source != LibrarySource.DEVICE) confirmCleanup = true },
             )
             androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(LibrarySource.entries.toList()) { source ->
@@ -354,7 +359,7 @@ fun LibraryScreen(
                                     )
                                 }
                             },
-                            onDelete = { viewModel.deleteLocal(video) },
+                            onDelete = { pendingLocalDelete = video },
                         )
                     }
                 }
@@ -380,7 +385,7 @@ fun LibraryScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(visibleTemporary, key = { it.name }) { file ->
-                        TemporaryFileCard(file = file, onDelete = { viewModel.deleteTemporary(file) })
+                        TemporaryFileCard(file = file, onDelete = { pendingTemporaryDelete = file })
                     }
                 }
             }
@@ -415,11 +420,57 @@ fun LibraryScreen(
                             }
                             context.startActivity(Intent.createChooser(share, "Compartir enlace"))
                         },
-                        onDelete = { viewModel.delete(item) },
+                        onDelete = { pendingServerDelete = item },
                     )
                 }
             }
         }
+    }
+
+    pendingLocalDelete?.let { video ->
+        ConfirmDialog(
+            title = "Eliminar video del teléfono",
+            message = "¿Eliminar " + video.name + " de la carpeta seleccionada? Esta acción no se puede deshacer.",
+            onConfirm = {
+                pendingLocalDelete = null
+                viewModel.deleteLocal(video)
+            },
+            onDismiss = { pendingLocalDelete = null },
+        )
+    }
+    pendingServerDelete?.let { item ->
+        ConfirmDialog(
+            title = "Eliminar del servidor",
+            message = "¿Eliminar " + item.name + " de la biblioteca del servidor? Esta acción no se puede deshacer.",
+            onConfirm = {
+                pendingServerDelete = null
+                viewModel.delete(item)
+            },
+            onDismiss = { pendingServerDelete = null },
+        )
+    }
+    pendingTemporaryDelete?.let { file ->
+        ConfirmDialog(
+            title = "Eliminar temporal",
+            message = "¿Eliminar " + file.name + " del servidor? Puede ser necesario volver a analizar o descargar el enlace.",
+            onConfirm = {
+                pendingTemporaryDelete = null
+                viewModel.deleteTemporary(file)
+            },
+            onDismiss = { pendingTemporaryDelete = null },
+        )
+    }
+    if (confirmCleanup) {
+        ConfirmDialog(
+            title = "Limpiar temporales",
+            message = "Se eliminarán del servidor los fragmentos, metadatos y descargas incompletas. Los videos terminados no se borrarán.",
+            confirmLabel = "Limpiar",
+            onConfirm = {
+                confirmCleanup = false
+                viewModel.cleanup()
+            },
+            onDismiss = { confirmCleanup = false },
+        )
     }
 
     playing?.let { item ->

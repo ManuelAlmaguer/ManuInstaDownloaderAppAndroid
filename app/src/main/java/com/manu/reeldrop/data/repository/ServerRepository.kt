@@ -2,6 +2,8 @@ package com.manu.reeldrop.data.repository
 
 import com.manu.reeldrop.data.remote.ApiException
 import com.manu.reeldrop.data.remote.ReelDropApi
+import com.manu.reeldrop.domain.LinkAnalysis
+import com.manu.reeldrop.domain.QualityOption
 import com.manu.reeldrop.domain.ServerHealth
 
 class ServerRepository(private val api: ReelDropApi) {
@@ -10,6 +12,26 @@ class ServerRepository(private val api: ReelDropApi) {
 
     /** Returns the first reachable server among the known candidates. */
     suspend fun discover(): Pair<String, ServerHealth>? = api.discoverServers().firstOrNull()
+
+    suspend fun analyze(url: String): LinkAnalysis {
+        val media = api.analyze(url)
+        return LinkAnalysis(
+            id = media.id,
+            title = media.title,
+            author = media.author,
+            thumbnailUrl = media.thumbnail,
+            durationSeconds = media.duration,
+            qualities = media.qualities.map {
+                QualityOption(
+                    id = it.id,
+                    label = it.label,
+                    description = it.description,
+                    height = it.height,
+                    kind = it.kind,
+                )
+            },
+        )
+    }
 
     suspend fun metricSummary(): String {
         val health = api.health()

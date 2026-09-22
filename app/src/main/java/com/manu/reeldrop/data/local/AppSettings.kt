@@ -11,6 +11,7 @@ data class AppSettings(
     val serverUrl: String = Constants.DEFAULT_SERVER_URL,
     val serverModeId: String = ServerMode.SAME_PHONE.id,
     val apiToken: String = "",
+    val apiTokenEnabled: Boolean = false,
     val qualityId: String = Quality.BEST.id,
     val themeId: String = AppTheme.NEON.id,
     val themeModeId: String = ThemeMode.DARK.id,
@@ -32,6 +33,7 @@ data class AppSettings(
     /** True once the app has asked for the runtime permissions at least one time. */
     val permissionsRequested: Boolean = false,
 ) {
+    val apiTokenForRequests: String get() = apiToken.takeIf { apiTokenEnabled }.orEmpty()
     val quality: Quality get() = Quality.fromId(qualityId)
     val serverMode: ServerMode get() = ServerMode.fromId(serverModeId)
     val theme: AppTheme get() = AppTheme.fromId(themeId)

@@ -11,12 +11,19 @@ require_once __DIR__ . '/util.php';
 
 function reeldrop_quality_format(string $quality): array
 {
+    if (preg_match('/^[0-9]{3,4}$/', $quality) === 1) {
+        $height = max(144, min(4320, (int) $quality));
+        return [
+            'bestvideo*[height<=' . $height . ']+bestaudio/best[height<=' . $height . ']',
+            'mp4',
+        ];
+    }
     return match ($quality) {
-        '1080' => ['bv*[height<=1080]+ba/b[height<=1080]', 'mp4'],
-        '720' => ['bv*[height<=720]+ba/b[height<=720]', 'mp4'],
-        '480' => ['bv*[height<=480]+ba/b[height<=480]', 'mp4'],
+        '1080' => ['bestvideo*[height<=1080]+bestaudio/best[height<=1080]', 'mp4'],
+        '720' => ['bestvideo*[height<=720]+bestaudio/best[height<=720]', 'mp4'],
+        '480' => ['bestvideo*[height<=480]+bestaudio/best[height<=480]', 'mp4'],
         'audio' => ['bestaudio/best', null],
-        default => ['bv*+ba/b', 'mp4'],
+        default => ['bestvideo*+bestaudio/best', 'mp4'],
     };
 }
 
@@ -178,4 +185,148 @@ function reeldrop_eta_to_seconds(?string $eta): ?int
         1 => $parts[0],
         default => null,
     };
+}
+
+/**
+ * Performs a metadata-only yt-dlp run for the quality picker.
+ * The process is bounded so a platform that does not answer cannot block the PHP worker forever.
+ */
+function reeldrop_analyze_url(string $url): ?array
+{
+    @set_time_limit(50);
+    $ytdlp = reeldrop_ytdlp();
+    if ($ytdlp === null) {
+        return null;
+    }
+
+    $parts = [
+        escapeshellarg($ytdlp),
+        '--dump-single-json',
+        '--skip-download',
+        '--no-warnings',
+        '--no-playlist',
+        '--socket-timeout 20',
+    ];
+    $cookies = (string) reeldrop_config_value('cookies_file', '');
+    if ($cookies !== '' && is_file($cookies)) {
+        $parts[] = '--cookies ' . escapeshellarg($cookies);
+    }
+    $parts[] = '--';
+    $parts[] = escapeshellarg($url);
+
+    $descriptors = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = @proc_open(implode(' ', $parts), $descriptors, $pipes);
+    if (!is_resource($process)) {
+        return null;
+    }
+
+    fclose($pipes[0]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+    $stdout = '';
+    $stderr = '';
+    $deadline = microtime(true) + 45.0;
+    $timedOut = false;
+
+    while (true) {
+        foreach ([1, 2] as $index) {
+            $chunk = @stream_get_contents($pipes[$index]);
+            if ($chunk === false || $chunk === '') {
+                continue;
+            }
+            if ($index === 1) {
+                $stdout .= $chunk;
+            } else {
+                $stderr .= $chunk;
+            }
+        }
+        $status = proc_get_status($process);
+        if (!$status['running']) {
+            break;
+        }
+        if (microtime(true) >= $deadline) {
+            $timedOut = true;
+            @proc_terminate($process);
+            break;
+        }
+        usleep(100000);
+    }
+
+    foreach ([1, 2] as $index) {
+        $chunk = @stream_get_contents($pipes[$index]);
+        if (is_string($chunk) && $chunk !== '') {
+            if ($index === 1) {
+                $stdout .= $chunk;
+            } else {
+                $stderr .= $chunk;
+            }
+        }
+        @fclose($pipes[$index]);
+    }
+    @proc_close($process);
+
+    if ($timedOut || trim($stdout) === '') {
+        return null;
+    }
+    $decoded = json_decode(trim($stdout), true);
+    if (!is_array($decoded)) {
+        $start = strpos($stdout, '{');
+        $end = strrpos($stdout, '}');
+        if ($start !== false && $end !== false && $end > $start) {
+            $decoded = json_decode(substr($stdout, $start, $end - $start + 1), true);
+        }
+    }
+    return is_array($decoded) ? $decoded : null;
+}
+
+/** Builds a stable, user-facing list from the formats returned by yt-dlp. */
+function reeldrop_quality_options(array $info): array
+{
+    $options = [[
+        'id' => 'best',
+        'label' => 'Mejor calidad',
+        'description' => 'Máxima disponible · video y audio',
+        'height' => null,
+        'kind' => 'video',
+    ]];
+    $heights = [];
+    $hasAudio = false;
+    foreach (($info['formats'] ?? []) as $format) {
+        if (!is_array($format)) {
+            continue;
+        }
+        $height = (int) ($format['height'] ?? 0);
+        $videoCodec = strtolower((string) ($format['vcodec'] ?? ''));
+        $audioCodec = strtolower((string) ($format['acodec'] ?? ''));
+        if ($height > 0 && $videoCodec !== '' && $videoCodec !== 'none') {
+            $heights[$height] = true;
+        }
+        if ($audioCodec !== '' && $audioCodec !== 'none' && ($videoCodec === '' || $videoCodec === 'none')) {
+            $hasAudio = true;
+        }
+    }
+    krsort($heights, SORT_NUMERIC);
+    foreach (array_slice(array_keys($heights), 0, 10) as $height) {
+        $options[] = [
+            'id' => (string) $height,
+            'label' => $height . 'p',
+            'description' => 'Video y audio hasta ' . $height . 'p',
+            'height' => $height,
+            'kind' => 'video',
+        ];
+    }
+    if ($hasAudio) {
+        $options[] = [
+            'id' => 'audio',
+            'label' => 'Solo audio',
+            'description' => 'Audio disponible en el enlace',
+            'height' => null,
+            'kind' => 'audio',
+        ];
+    }
+    return $options;
 }

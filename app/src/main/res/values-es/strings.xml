@@ -13,6 +13,8 @@
     <string name="channel_progress_desc">Muestra el progreso, la velocidad y el tiempo restante de cada descarga.</string>
     <string name="channel_result_name">Resultados de descarga</string>
     <string name="channel_result_desc">Avisa cuando una descarga termina correctamente o falla.</string>
+    <string name="channel_service_name">Servicio de descargas</string>
+    <string name="channel_service_desc">Mantiene el motor de descargas activo en segundo plano.</string>
     <string name="notif_action_cancel">Cancelar</string>
     <string name="notif_action_retry">Reintentar</string>
     <string name="notif_action_open">Abrir</string>

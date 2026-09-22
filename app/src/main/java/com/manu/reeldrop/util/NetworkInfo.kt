@@ -1,5 +1,9 @@
 package com.manu.reeldrop.util
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.Uri
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
@@ -54,4 +58,16 @@ object NetworkInfo {
             (first == 192 && second == 168) ||
             (first == 169 && second == 254)
     }
+
+    fun isLoopbackUrl(url: String): Boolean = runCatching {
+        isLoopbackHost(Uri.parse(url).host)
+    }.getOrDefault(false)
+
+    /** True only when the active network is Wi-Fi; mobile data is deliberately excluded. */
+    fun isWifiConnected(context: Context): Boolean = runCatching {
+        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return@runCatching false
+        val network = manager.activeNetwork ?: return@runCatching false
+        val capabilities = manager.getNetworkCapabilities(network) ?: return@runCatching false
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+    }.getOrDefault(false)
 }

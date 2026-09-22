@@ -31,6 +31,7 @@ class SettingsRepository(
         val serverUrl = stringPreferencesKey("server_url")
         val serverMode = stringPreferencesKey("server_mode")
         val apiToken = stringPreferencesKey("api_token")
+        val apiTokenEnabled = booleanPreferencesKey("api_token_enabled")
         val quality = stringPreferencesKey("quality")
         val theme = stringPreferencesKey("theme")
         val themeMode = stringPreferencesKey("theme_mode")
@@ -60,6 +61,7 @@ class SettingsRepository(
             serverUrl = prefs[Keys.serverUrl]?.takeIf { it.isNotBlank() } ?: defaults.serverUrl,
             serverModeId = prefs[Keys.serverMode] ?: defaults.serverModeId,
             apiToken = prefs[Keys.apiToken].orEmpty(),
+            apiTokenEnabled = prefs[Keys.apiTokenEnabled] ?: defaults.apiTokenEnabled,
             qualityId = prefs[Keys.quality] ?: defaults.qualityId,
             themeId = prefs[Keys.theme] ?: defaults.themeId,
             themeModeId = prefs[Keys.themeMode] ?: defaults.themeModeId,
@@ -93,6 +95,7 @@ class SettingsRepository(
             prefs[Keys.serverUrl] = next.serverUrl
             prefs[Keys.serverMode] = next.serverModeId
             prefs[Keys.apiToken] = next.apiToken
+            prefs[Keys.apiTokenEnabled] = next.apiTokenEnabled
             prefs[Keys.quality] = next.qualityId
             prefs[Keys.theme] = next.themeId
             prefs[Keys.themeMode] = next.themeModeId
@@ -119,6 +122,7 @@ class SettingsRepository(
             serverUrl = prefs[Keys.serverUrl]?.takeIf { it.isNotBlank() } ?: defaults.serverUrl,
             serverModeId = prefs[Keys.serverMode] ?: defaults.serverModeId,
             apiToken = prefs[Keys.apiToken].orEmpty(),
+            apiTokenEnabled = prefs[Keys.apiTokenEnabled] ?: defaults.apiTokenEnabled,
             qualityId = prefs[Keys.quality] ?: defaults.qualityId,
             themeId = prefs[Keys.theme] ?: defaults.themeId,
             themeModeId = prefs[Keys.themeMode] ?: defaults.themeModeId,

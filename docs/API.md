@@ -27,7 +27,7 @@ Con token incorrecto: `401 {"ok":false,"error":"Token de API incorrecto o ausent
 {
   "ok": true,
   "app": "Manu ReelDrop Server",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "ytdlp": "/data/data/com.termux/files/usr/bin/yt-dlp",
   "ytdlp_version": "2025.09.05",
   "ffmpeg": true,
@@ -46,9 +46,32 @@ Con token incorrecto: `401 {"ok":false,"error":"Token de API incorrecto o ausent
 `message` avisa cuando falta yt-dlp. La app usa este endpoint para el indicador de estado, el
 espacio libre y el diagnóstico.
 
+### POST action=analyze
+
+Analiza un enlace sin iniciar una descarga. El servidor ejecuta yt-dlp en modo
+metadata-only y devuelve el título, autor, duración y las calidades encontradas.
+La respuesta siempre incluye la opción best (Mejor calidad) como fallback seguro y
+puede incluir alturas concretas como 2160p, 1080p o 720p, además de solo audio
+cuando el recurso lo ofrece.
+
+El cuerpo contiene url. El resultado tiene la forma:
+
+    {
+      "ok": true,
+      "media": {
+        "title": "Mi vídeo",
+        "author": "cuenta",
+        "duration": 42.5,
+        "qualities": [
+          {"id": "best", "label": "Mejor calidad", "height": null, "kind": "video"},
+          {"id": "1080", "label": "1080p", "height": 1080, "kind": "video"}
+        ]
+      }
+    }
+
 ### POST `?action=job-create`
 
-Cuerpo: `{"url": "https://www.youtube.com/watch?v=…", "quality": "best|1080|720|480|audio"}`
+Cuerpo: `{"url": "https://www.youtube.com/watch?v=…", "quality": "best|<altura>|audio"}`
 
 Se aceptan hosts de Instagram, YouTube (`youtube.com`, `youtu.be`) y Facebook
 (`facebook.com`, `fb.watch`). El servidor vuelve a validar la lista configurada en

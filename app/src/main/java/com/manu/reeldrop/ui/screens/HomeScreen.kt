@@ -67,8 +67,9 @@ import com.manu.reeldrop.core.Constants
 import com.manu.reeldrop.core.Formatters
 import com.manu.reeldrop.core.ServiceLocator
 import com.manu.reeldrop.domain.DownloadJob
+import com.manu.reeldrop.domain.LinkAnalysis
 import com.manu.reeldrop.domain.JobStatus
-import com.manu.reeldrop.domain.Quality
+import com.manu.reeldrop.domain.QualityOption
 import com.manu.reeldrop.domain.ServerHealth
 import com.manu.reeldrop.service.DownloadService
 import com.manu.reeldrop.ui.components.GlassCard
@@ -81,11 +82,18 @@ import com.manu.reeldrop.util.UrlUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class HomeUiState(
     val url: String = "",
-    val quality: Quality = Quality.BEST,
+    val analysis: LinkAnalysis? = null,
+    val selectedQualityId: String? = null,
+    val analyzing: Boolean = false,
     val busy: Boolean = false,
     val discovering: Boolean = false,
     val message: String? = null,
@@ -106,9 +114,10 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
     private val engine get() = ServiceLocator.engine
     private val server get() = ServiceLocator.server
     private val library get() = ServiceLocator.library
+    private val monitorMutex = Mutex()
 
     private val _state = MutableStateFlow(
-        HomeUiState(quality = settings.cached.quality, serverUrl = settings.cached.serverUrl),
+        HomeUiState(serverUrl = settings.cached.serverUrl),
     )
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
@@ -123,11 +132,20 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
         }
         refreshHealth()
         refreshLibraryCount()
+        startServerMonitor()
     }
 
     fun onUrlChange(value: String) {
         val clean = if (value.length > 800) value.take(800) else value
-        _state.value = _state.value.copy(url = clean, message = null)
+        val current = _state.value
+        val sameUrl = current.url == clean
+        _state.value = current.copy(
+            url = clean,
+            analysis = current.analysis.takeIf { sameUrl },
+            selectedQualityId = current.selectedQualityId.takeIf { sameUrl },
+            analyzing = false,
+            message = null,
+        )
     }
 
     fun pasteFromClipboard() {
@@ -136,22 +154,85 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
         val url = UrlUtils.extractUrl(text)
         if (url.isNullOrBlank()) {
             _state.value = _state.value.copy(message = "El portapapeles no contiene ningún enlace", messageIsError = true)
+            return
+        }
+        onUrlChange(url)
+        if (UrlUtils.isSupportedUrl(url)) {
+            analyze()
         } else {
             _state.value = _state.value.copy(
-                url = url,
-                message = if (UrlUtils.isSupportedUrl(url)) "Enlace detectado: ${UrlUtils.contentKind(url)}" else "Ojo: no parece un enlace compatible",
-                messageIsError = !UrlUtils.isSupportedUrl(url),
+                message = "Ojo: no parece un enlace compatible",
+                messageIsError = true,
             )
         }
     }
 
     fun clearUrl() {
-        _state.value = _state.value.copy(url = "", message = null)
+        _state.value = _state.value.copy(
+            url = "",
+            analysis = null,
+            selectedQualityId = null,
+            analyzing = false,
+            message = null,
+        )
     }
 
-    fun selectQuality(quality: Quality) {
-        _state.value = _state.value.copy(quality = quality)
+    fun selectQuality(quality: QualityOption) {
+        _state.value = _state.value.copy(selectedQualityId = quality.id)
         viewModelScope.launch { settings.update { it.copy(qualityId = quality.id) } }
+    }
+
+    fun analyze() {
+        val current = _state.value
+        if (current.url.isBlank()) {
+            _state.value = current.copy(message = "Pega primero un enlace de vídeo", messageIsError = true)
+            return
+        }
+        if (!current.urlIsValid) {
+            _state.value = current.copy(
+                message = "El enlace debe ser de Instagram, YouTube o Facebook",
+                messageIsError = true,
+            )
+            return
+        }
+        _state.value = current.copy(
+            analyzing = true,
+            analysis = null,
+            selectedQualityId = null,
+            message = "Analizando el enlace…",
+            messageIsError = false,
+        )
+        viewModelScope.launch {
+            runCatching { server.analyze(current.url) }
+                .onSuccess { analyzed ->
+                    val qualities = analyzed.qualities.ifEmpty {
+                        listOf(
+                            QualityOption(
+                                id = "best",
+                                label = "Mejor calidad",
+                                description = "Máxima disponible · video y audio",
+                            ),
+                        )
+                    }
+                    val preferred = settings.cached.qualityId
+                    val selected = qualities.firstOrNull { it.id == preferred }?.id
+                        ?: qualities.first().id
+                    _state.value = _state.value.copy(
+                        analyzing = false,
+                        analysis = analyzed.copy(qualities = qualities),
+                        selectedQualityId = selected,
+                        message = "Enlace analizado · elige una calidad para descargar",
+                        messageIsError = false,
+                    )
+                }
+                .onFailure { error ->
+                    _state.value = _state.value.copy(
+                        analyzing = false,
+                        message = error.message ?: "No se pudo analizar el enlace",
+                        messageIsError = true,
+                    )
+                }
+        }
     }
 
     fun download() {
@@ -164,9 +245,18 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
             _state.value = current.copy(message = "El enlace debe ser de Instagram, YouTube o Facebook", messageIsError = true)
             return
         }
+        val analysis = current.analysis
+        val quality = analysis?.qualities?.firstOrNull { it.id == current.selectedQualityId }
+        if (analysis == null || quality == null) {
+            _state.value = current.copy(
+                message = "Analiza el enlace y elige una calidad antes de descargar",
+                messageIsError = true,
+            )
+            return
+        }
         _state.value = current.copy(busy = true, message = null)
         viewModelScope.launch {
-            val result = engine.enqueue(current.url, current.quality.id)
+            val result = engine.enqueue(current.url, quality.id)
             result.onSuccess {
                 // The local job is already enqueued above. The service only keeps the
                 // foreground lifecycle alive; passing the URL here would enqueue it twice.
@@ -174,7 +264,9 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(
                     busy = false,
                     url = "",
-                    message = "Descarga añadida a la cola · ${current.quality.label}",
+                    analysis = null,
+                    selectedQualityId = null,
+                    message = "Descarga añadida a la cola · " + quality.label,
                     messageIsError = false,
                 )
             }.onFailure { error ->
@@ -189,37 +281,77 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun refreshHealth(baseUrl: String? = null) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(health = _state.value.health.copy(message = "Comprobando servidor…"))
-            val health = server.health(baseUrl)
-            _state.value = _state.value.copy(
-                health = health,
-                serverUrl = settings.cached.serverUrl,
-                libraryCount = if (health.libraryCount > 0) health.libraryCount else _state.value.libraryCount,
-            )
+            monitorMutex.withLock {
+                _state.value = _state.value.copy(health = _state.value.health.copy(message = "Comprobando servidor…"))
+                val health = server.health(baseUrl)
+                applyHealth(health)
+            }
         }
     }
 
     fun discoverServer() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(discovering = true, message = "Buscando servidor…")
-            val found = server.discover()
-            if (found == null) {
-                _state.value = _state.value.copy(
-                    discovering = false,
-                    message = "No encontré ningún servidor. Inicia Termux y ejecuta el servidor.",
-                    messageIsError = true,
-                    health = ServerHealth(reachable = false, message = "Inaccesible"),
-                )
-            } else {
-                val (url, health) = found
-                settings.update { it.copy(serverUrl = url, lastSuccessfulServer = url) }
-                _state.value = _state.value.copy(
-                    discovering = false,
-                    health = health,
-                    serverUrl = url,
-                    message = "Servidor encontrado en $url",
-                    messageIsError = false,
-                )
+            monitorMutex.withLock {
+                _state.value = _state.value.copy(discovering = true, message = "Buscando servidor…")
+                val found = server.discover()
+                if (found == null) {
+                    _state.value = _state.value.copy(
+                        discovering = false,
+                        message = "No encontré ningún servidor. Inicia Termux y ejecuta el servidor.",
+                        messageIsError = true,
+                        health = ServerHealth(reachable = false, message = "Inaccesible"),
+                    )
+                } else {
+                    val (url, health) = found
+                    settings.update { it.copy(serverUrl = url, lastSuccessfulServer = url) }
+                    _state.value = _state.value.copy(
+                        discovering = false,
+                        health = health,
+                        serverUrl = url,
+                        message = "Servidor encontrado en $url",
+                        messageIsError = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applyHealth(health: ServerHealth) {
+        _state.value = _state.value.copy(
+            health = health,
+            serverUrl = settings.cached.serverUrl,
+            libraryCount = health.libraryCount,
+        )
+    }
+
+    private fun startServerMonitor() {
+        viewModelScope.launch {
+            delay(5_000L)
+            while (currentCoroutineContext().isActive) {
+                monitorMutex.withLock {
+                    if (_state.value.health.reachable) {
+                        applyHealth(server.health())
+                    } else {
+                        val found = server.discover()
+                        if (found != null) {
+                            val (url, health) = found
+                            settings.update { it.copy(serverUrl = url, lastSuccessfulServer = url) }
+                            _state.value = _state.value.copy(
+                                health = health,
+                                serverUrl = url,
+                                discovering = false,
+                                message = null,
+                                messageIsError = false,
+                            )
+                        } else {
+                            _state.value = _state.value.copy(
+                                health = ServerHealth(reachable = false, message = "Servidor no disponible"),
+                                discovering = false,
+                            )
+                        }
+                    }
+                }
+                delay(if (_state.value.health.reachable) 5_000L else 10_000L)
             }
         }
     }
@@ -270,6 +402,7 @@ fun HomeScreen(
     LaunchedEffect(sharedUrl) {
         if (!sharedUrl.isNullOrBlank()) {
             viewModel.onUrlChange(sharedUrl)
+            viewModel.analyze()
             onSharedUrlConsumed()
         }
     }
@@ -305,34 +438,54 @@ fun HomeScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
-                    keyboardActions = KeyboardActions(onGo = { viewModel.download() }),
+                    keyboardActions = KeyboardActions(onGo = { viewModel.analyze() }),
                 )
 
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "Calidad de descarga",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(Quality.entries.toList()) { quality ->
-                        QualityChip(
-                            quality = quality,
-                            selected = quality == state.quality,
-                            onClick = { viewModel.selectQuality(quality) },
-                        )
+                val analysis = state.analysis
+                if (analysis == null) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Analiza el enlace para consultar las calidades disponibles.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    GradientButton(
+                        text = if (state.analyzing) "Analizando…" else "Analizar enlace",
+                        onClick = viewModel::analyze,
+                        enabled = state.url.isNotBlank(),
+                        loading = state.analyzing,
+                        icon = Icons.Filled.Search,
+                    )
+                } else {
+                    AnalysisPreview(analysis)
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        "Calidad disponible",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    val selectedQuality = analysis.qualities.firstOrNull { it.id == state.selectedQualityId }
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(analysis.qualities) { quality ->
+                            QualityChip(
+                                quality = quality,
+                                selected = quality.id == state.selectedQualityId,
+                                onClick = { viewModel.selectQuality(quality) },
+                            )
+                        }
                     }
+                    Spacer(Modifier.height(14.dp))
+                    GradientButton(
+                        text = if (state.busy) "Añadiendo…"
+                        else "Descargar " + (selectedQuality?.label ?: "calidad elegida"),
+                        onClick = viewModel::download,
+                        enabled = selectedQuality != null,
+                        loading = state.busy,
+                        icon = Icons.Filled.ArrowDownward,
+                    )
                 }
-
-                Spacer(Modifier.height(14.dp))
-                GradientButton(
-                    text = if (state.busy) "Añadiendo…" else "Descargar ${state.detectedKind}",
-                    onClick = viewModel::download,
-                    enabled = state.url.isNotBlank(),
-                    loading = state.busy,
-                    icon = Icons.Filled.ArrowDownward,
-                )
 
                 state.message?.let { message ->
                     Spacer(Modifier.height(10.dp))
@@ -598,7 +751,41 @@ private fun ServerCard(
 }
 
 @Composable
-private fun QualityChip(quality: Quality, selected: Boolean, onClick: () -> Unit) {
+private fun AnalysisPreview(analysis: LinkAnalysis) {
+    val palette = LocalReelPalette.current
+    val title = analysis.title?.takeIf { it.isNotBlank() } ?: "Vídeo listo para descargar"
+    val metadata = listOfNotNull(
+        analysis.author?.takeIf { it.isNotBlank() },
+        Formatters.duration(analysis.durationSeconds).takeUnless { it == "—" },
+    ).joinToString(" · ")
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = palette.accent.copy(alpha = 0.10f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.accent.copy(alpha = 0.30f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (metadata.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    metadata,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(5.dp))
+            Text(
+                analysis.qualities.size.toString() + " calidades disponibles",
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.accent,
+            )
+        }
+    }
+}
+
+@Composable
+private fun QualityChip(quality: QualityOption, selected: Boolean, onClick: () -> Unit) {
     val palette = LocalReelPalette.current
     Surface(
         shape = RoundedCornerShape(12.dp),

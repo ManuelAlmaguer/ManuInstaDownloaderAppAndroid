@@ -41,7 +41,7 @@ $tokenSuffix = $token === '' ? '' : '&token=' . rawurlencode($token);
     </div>
     <h1>Manu ReelDrop Server</h1>
     <p class="subtitle">
-      Panel del servidor · v<?= htmlspecialchars((string) reeldrop_config_value('app_version', '2.1.0')) ?>
+      Panel del servidor · v<?= htmlspecialchars((string) reeldrop_config_value('app_version', '2.2.0')) ?>
       · <?= $ytdlp ? 'yt-dlp OK' : 'yt-dlp no instalado' ?>
       · libre <?= htmlspecialchars(reeldrop_bytes_human((float) $space['free_space'])) ?>
     </p>

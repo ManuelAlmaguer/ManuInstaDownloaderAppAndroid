@@ -43,7 +43,7 @@ El nombre visible actual es **Manu ReelDrop**. Se mantiene el paquete Android y 
 | `app/` | Código fuente de la app Android (Kotlin, Jetpack Compose, Material 3). |
 | `server/` | Servidor PHP + yt-dlp para Termux (cola de trabajos, progreso, biblioteca, miniaturas). |
 | `docs/` | Documentación detallada: API, servidor y arquitectura. |
-| `release/` | APK v1.1.0 listos para instalar y referencia histórica v1.0.0. |
+| `release/` | APK v1.2.0 listos para instalar y referencias históricas v1.1.0/v1.0.0. |
 | `HANDOFF.md` | Estado del proyecto, decisiones y siguientes pasos. |
 
 El servidor es compatible con el `api.php` original de la web: puedes actualizar la carpeta y
@@ -125,7 +125,8 @@ Al terminar verás algo así:
 Arranca el servidor con:  ./start.sh
 ```
 
-**Guarda ese token**: se pega en la app (Ajustes → Servidor → Token de API).
+**Guarda ese token**: se conserva en la app (Ajustes → Servidor) y se activa con **Usar token de API**
+solo cuando el servidor lo requiere.
 
 ### Arrancar el servidor
 
@@ -238,7 +239,7 @@ petición (`X-Api-Token`). Si usas `http://` en un host público, la app te avis
 
 ### Opción rápida: APK ya compilado
 
-1. Descarga `release/ManuReelDrop-v1.1.0.apk` (la v1.0.0 se conserva como referencia histórica).
+1. Descarga `release/ManuReelDrop-v1.2.0.apk` (las v1.1.0 y v1.0.0 se conservan como referencias históricas).
 2. Ábrelo en el móvil y permite **instalar apps de origen desconocido** cuando lo pida.
 3. Al abrir la app por primera vez te pedirá los permisos necesarios.
 
@@ -259,7 +260,8 @@ cd ManuInstaDownloaderAppAndroid
 
 * **¿Dónde está tu servidor?** Mismo móvil / Red local / Internet.
 * **Dirección del servidor**: por ejemplo `http://127.0.0.1:8080`.
-* **Token de API**: el que generó `setup-termux.sh`.
+* **Usar token de API**: activa el checkbox solo si el servidor lo requiere; el campo del token
+  aparece debajo únicamente cuando está activado y se conserva para usarlo más adelante.
 * **Abrir Termux**: desde la tarjeta del servidor puedes abrir la aplicación rápidamente. Android
   puede mostrar Termux en primer plano; la app no ejecuta comandos ni inicia PHP de forma
   silenciosa por las restricciones de seguridad del sistema.
@@ -271,7 +273,9 @@ cd ManuInstaDownloaderAppAndroid
 
 * Calidad predeterminada (Máxima, 1080p, 720p, 480p, solo audio).
 * Descargas simultáneas (1–5) y reintentos automáticos (0–5).
-* Reintentar cuando falle, guardar al terminar, solo Wi-Fi, mantener pantalla activa.
+* Reintentar cuando falle, guardar al terminar, solo Wi-Fi, mantener pantalla activa. Con **solo
+  Wi-Fi** activo, las descargas quedan esperando si el teléfono está usando datos móviles y se
+  reanudan automáticamente al volver a una red Wi-Fi; el servidor local por loopback no se bloquea.
 
 ---
 
@@ -279,6 +283,8 @@ cd ManuInstaDownloaderAppAndroid
 
 * **Descargar por URL**: pega el enlace o comparte vídeos desde Instagram, YouTube o Facebook
   (*Compartir → Manu ReelDrop*).
+* **Calidades dinámicas**: primero analiza el enlace, enseña las resoluciones que realmente
+  existen y mantiene Mejor calidad como alternativa segura; la descarga comienza al elegirla.
 * **Cola de descargas** con estados en vivo: en cola, descargando, procesando, reintentando,
   completado, error.
 * **Progreso en tiempo real**: porcentaje, velocidad, tamaño descargado/total y tiempo
@@ -290,12 +296,17 @@ cd ManuInstaDownloaderAppAndroid
 * **Reintentos automáticos** con espera progresiva (1,5 s → 3 s → 6 s…) más *jitter*, y
   recuperación al volver la conexión y al reiniciar el móvil.
 * **Robustez**: si el stream de progreso se corta, cambia a *polling*; si el servidor es
-  antiguo, usa el modo compatible; si falta yt-dlp, te dice el comando a ejecutar.
+  antiguo, usa el modo compatible; si falta yt-dlp, te dice el comando a ejecutar. La app
+  comprueba el servidor automáticamente cada 5 segundos cuando está conectado y busca de nuevo
+  cada 10 segundos cuando se pierde.
 * **Biblioteca** con miniaturas, duración y resolución: reproducir dentro de la app (Media3),
   guardar en el teléfono, compartir, eliminar del servidor o buscar.
 * **Carpeta personalizada** en el teléfono o la tarjeta SD (sección 11).
-* **Notificaciones** de progreso y de resultado con acciones (sección 12). La tarjeta muestra
-  métricas etiquetadas y legibles, incluso con servidores antiguos.
+* **Notificaciones** de progreso, servicio en segundo plano, éxito y error con acciones (sección
+  12). Todas usan jerarquía visual, etiquetas legibles y estados separados, incluso con
+  servidores antiguos.
+* **Confirmaciones seguras** antes de borrar archivos locales, videos del servidor, temporales o
+  entradas del historial; las limpiezas masivas también requieren confirmación.
 * **Temas** (12 paletas, claro/oscuro/automático, Material You) — sección 9.
 * **Biblioteca** con pestañas para el servidor, la carpeta del teléfono y los temporales del
   servidor; los temporales se pueden revisar y borrar individualmente.
@@ -375,7 +386,10 @@ Android (o simplemente se quedan en el servidor, en `server/downloads`).
   Las líneas compactas heredadas como 1.7%|35.16KiB/s|2:02|... se convierten en métricas
   visuales antes de llegar a la tarjeta.
 * **Resultado** (canal *Resultados de descarga*): una tarjeta reutilizable al terminar o
-  fallar, con *Abrir* o *Reintentar*, sin apilar una notificación por cada evento.
+  fallar, con estado, video, tamaño, archivo, destino o motivo claramente separados y con
+  *Abrir* o *Reintentar*, sin apilar una notificación por cada evento.
+* **Servicio en segundo plano**: mientras el motor está preparado muestra un aviso discreto
+  etiquetado como «Listo para descargar».
 
 El servicio en primer plano mantiene la cola viva con la app cerrada. Si no quieres
 notificaciones, desactívalas en Ajustes o en el sistema.
@@ -414,8 +428,9 @@ tiene token, envía `X-Api-Token: <token>` o `?token=<token>`.
 
 | Acción | Método | Descripción |
 |---|---|---|
+| analyze | POST | Analiza el enlace y devuelve las calidades disponibles; siempre incluye Mejor calidad. |
 | `health` | GET | Estado, versión de yt-dlp/ffmpeg, espacio libre, trabajos activos. |
-| `job-create` | POST `{url, quality}` | Crea la descarga y la arranca en segundo plano. |
+| `job-create` | POST `{url, quality}` | Crea la descarga y la arranca en segundo plano; quality puede ser best, audio o una altura analizada. |
 | `job` | GET `?id=` | Estado de un trabajo. |
 | `jobs` | GET `?limit=` | Últimos trabajos. |
 | `events` | GET `?id=` | Progreso en vivo (SSE) hasta que termina. |
@@ -465,7 +480,7 @@ publica los APK como artefactos.
 | Síntoma | Causa y solución |
 |---|---|
 | «No se pudo conectar con el servidor» | El servidor no está arrancado o la IP/puerto no coinciden. En Termux: `./start.sh`; en la app: **Ajustes → Buscar**. |
-| «Token de API incorrecto o ausente» | Copia el token de `config.php` en Ajustes → Servidor. |
+| «Token de API incorrecto o ausente» | Copia el token de `config.php` en Ajustes → Servidor y activa **Usar token de API**. |
 | «yt-dlp no está instalado» | En Termux: `pkg install python && pip install -U yt-dlp`. |
 | «No se pudo generar la miniatura» | Falta ffmpeg: `pkg install ffmpeg`. |
 | La descarga se queda en «Procesando» | La plataforma pide cookies o cambió el formato: `pip install -U yt-dlp` y, si hace falta, usa `cookies_file`. |

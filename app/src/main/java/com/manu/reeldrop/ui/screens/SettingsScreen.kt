@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -72,6 +73,7 @@ import com.manu.reeldrop.domain.ServerMode
 import com.manu.reeldrop.domain.ServerHealth
 import com.manu.reeldrop.domain.ThemeMode
 import com.manu.reeldrop.ui.components.GlassCard
+import com.manu.reeldrop.ui.components.ConfirmDialog
 import com.manu.reeldrop.ui.components.SectionHeader
 import com.manu.reeldrop.ui.theme.LocalReelPalette
 import com.manu.reeldrop.ui.theme.Palettes
@@ -200,6 +202,12 @@ fun SettingsScreen(
 
     var urlDraft by remember(settings.serverUrl) { mutableStateOf(settings.serverUrl) }
     var tokenDraft by remember(settings.apiToken) { mutableStateOf(settings.apiToken) }
+    var tokenVisible by remember(settings.apiToken, settings.apiTokenEnabled) {
+        mutableStateOf(settings.apiTokenEnabled)
+    }
+    var confirmCleanup by remember { mutableStateOf(false) }
+    var confirmClearFinished by remember { mutableStateOf(false) }
+    var confirmClearAll by remember { mutableStateOf(false) }
 
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -335,20 +343,48 @@ fun SettingsScreen(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = tokenDraft,
-                    onValueChange = { tokenDraft = it },
-                    label = { Text("Token de API (opcional)") },
-                    supportingText = { Text("Déjalo vacío si tu servidor no usa token") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = tokenVisible,
+                        onCheckedChange = { tokenVisible = it },
+                        modifier = Modifier.size(32.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Column {
+                        Text("Usar token de API", style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            "Actívalo solo si el servidor lo requiere",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (tokenVisible) {
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = tokenDraft,
+                        onValueChange = { tokenDraft = it },
+                        label = { Text("Token de API") },
+                        supportingText = { Text("Se conserva para cuando vuelvas a necesitarlo") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                    )
+                }
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
-                        viewModel.update { it.copy(serverUrl = urlDraft.trim(), apiToken = tokenDraft.trim()) }
+                        viewModel.update {
+                            it.copy(
+                                serverUrl = urlDraft.trim(),
+                                apiToken = tokenDraft.trim(),
+                                apiTokenEnabled = tokenVisible,
+                            )
+                        }
                         viewModel.testConnection()
                     }, modifier = Modifier.weight(1f)) {
                         Text("Guardar y probar")
@@ -646,15 +682,15 @@ fun SettingsScreen(
             GlassCard {
                 SectionTitle("Mantenimiento", Icons.Filled.CleaningServices)
                 Spacer(Modifier.height(6.dp))
-                TextButton(onClick = viewModel::cleanupServer) {
+                TextButton(onClick = { confirmCleanup = true }) {
                     Icon(Icons.Filled.CleaningServices, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("  Limpiar temporales del servidor")
                 }
-                TextButton(onClick = { viewModel.clearFinished() }) {
+                TextButton(onClick = { confirmClearFinished = true }) {
                     Icon(Icons.Filled.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("  Borrar descargas finalizadas del historial")
                 }
-                TextButton(onClick = { viewModel.clearAll() }) {
+                TextButton(onClick = { confirmClearAll = true }) {
                     Icon(Icons.Filled.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("  Vaciar todo el historial")
                 }
@@ -678,6 +714,41 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (confirmCleanup) {
+        ConfirmDialog(
+            title = "Limpiar temporales",
+            message = "Se eliminarán del servidor los fragmentos, metadatos y descargas incompletas. Los videos terminados no se borrarán.",
+            confirmLabel = "Limpiar",
+            onConfirm = {
+                confirmCleanup = false
+                viewModel.cleanupServer()
+            },
+            onDismiss = { confirmCleanup = false },
+        )
+    }
+    if (confirmClearFinished) {
+        ConfirmDialog(
+            title = "Borrar finalizadas",
+            message = "Se eliminarán del historial todas las descargas completadas, fallidas o canceladas.",
+            onConfirm = {
+                confirmClearFinished = false
+                viewModel.clearFinished()
+            },
+            onDismiss = { confirmClearFinished = false },
+        )
+    }
+    if (confirmClearAll) {
+        ConfirmDialog(
+            title = "Vaciar historial",
+            message = "Se eliminarán todas las descargas del historial de la aplicación. Los archivos del servidor y del teléfono no se borrarán.",
+            onConfirm = {
+                confirmClearAll = false
+                viewModel.clearAll()
+            },
+            onDismiss = { confirmClearAll = false },
+        )
     }
 }
 

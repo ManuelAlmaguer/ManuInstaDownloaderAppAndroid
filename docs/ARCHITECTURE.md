@@ -15,7 +15,7 @@
 │  data/          ReelDropApi (OkHttp + SSE), SettingsRepository (DataStore),  │
 │                 JobStore (JSON atómico), LibraryRepository, ServerRepository │
 │                                                                             │
-│  domain/        DownloadJob, JobStatus, Quality, LibraryItem, ServerMode…    │
+│  domain/        DownloadJob, JobStatus, QualityOption, LinkAnalysis, …      │
 │  util/          UrlUtils, NetworkInfo, LocalFolder (SAF), Permissions        │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │ HTTP/HTTPS + token
@@ -47,6 +47,10 @@
 La app no ejecuta PHP ni crea un listener en el puerto 8080. `server/start.sh` es el proceso
 que el usuario inicia en Termux; Android solo consume su API por la URL configurada.
 
+Antes de crear el trabajo, la pantalla envía el enlace a la acción analyze. El servidor consulta
+yt-dlp sin descargar, reduce sus formatos a una lista de calidades reales y la app la muestra
+junto a la opción Mejor calidad. Solo después de elegir una opción se envía job-create.
+
 ## Robustez
 
 | Fallo | Respuesta automática |
@@ -58,6 +62,8 @@ que el usuario inicia en Termux; Android solo consume su API por la URL configur
 | El servidor es antiguo | Se detecta el `404` de `job-create` y se usa `download-stream` (modo compatible). |
 | El worker muere | `store.php` detecta que el PID no existe y marca el trabajo como `failed` con un motivo legible. |
 | Error transitorio del servidor | Reintentos con backoff exponencial + jitter (hasta el límite configurado). |
+| El servidor deja de responder | El monitor hace health cada 5 s si estaba conectado y vuelve a descubrirlo cada 10 s si se pierde. |
+| Solo por Wi-Fi activo | Las descargas esperan sin consumir datos móviles y se reanudan al recuperar una red Wi-Fi. |
 
 ## Persistencia
 

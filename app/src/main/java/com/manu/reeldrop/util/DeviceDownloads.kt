@@ -30,7 +30,7 @@ object DeviceDownloads {
             .setAllowedOverRoaming(true)
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES, "ReelDrop/$fileName")
 
-        settings.cached.apiToken.takeIf { it.isNotBlank() }?.let {
+        settings.cached.apiTokenForRequests.takeIf { it.isNotBlank() }?.let {
             request.addRequestHeader("X-Api-Token", it)
         }
         manager.enqueue(request)

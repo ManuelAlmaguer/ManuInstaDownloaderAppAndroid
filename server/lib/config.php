@@ -30,7 +30,7 @@ function reeldrop_config(): array
             'facebook.com', 'fb.watch',
         ],
         'stale_job_seconds' => 45,
-        'app_version' => '2.1.0',
+        'app_version' => '2.2.0',
     ];
 
     $file = dirname(__DIR__) . '/config.php';

@@ -137,7 +137,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         try {
             val request = Request.Builder()
                 .url(endpoint(base, "health"))
-                .authorize(settings.apiToken)
+                .authorize(settings.apiTokenForRequests)
                 .get()
                 .build()
             HttpClient.probeClient.newCall(request).execute().use { response ->
@@ -223,12 +223,25 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
 
     // ---------------------------------------------------------------- jobs
 
+    suspend fun analyze(url: String, baseUrl: String? = null): MediaAnalysisDto {
+        val settings = settingsProvider()
+        val base = normalizeBaseUrl(baseUrl ?: settings.serverUrl)
+        val response = postJson<AnalysisResponse>(
+            endpoint(base, "analyze"),
+            settings.apiTokenForRequests,
+            jsonBody("url" to url),
+            base,
+        )
+        return response.media
+            ?: throw ApiException.ServerError(response.error ?: "El servidor no devolvió información del enlace")
+    }
+
     suspend fun createJob(url: String, qualityId: String, baseUrl: String? = null): JobDto {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(baseUrl ?: settings.serverUrl)
         val envelope = postJson<JobEnvelope>(
             endpoint(base, "job-create"),
-            settings.apiToken,
+            settings.apiTokenForRequests,
             jsonBody("url" to url, "quality" to qualityId),
             base,
         )
@@ -238,28 +251,28 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
     suspend fun getJob(jobId: String, baseUrl: String? = null): JobDto {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(baseUrl ?: settings.serverUrl)
-        val envelope = getJson<JobEnvelope>(endpoint(base, "job") + "&id=$jobId", settings.apiToken, base)
+        val envelope = getJson<JobEnvelope>(endpoint(base, "job") + "&id=$jobId", settings.apiTokenForRequests, base)
         return envelope.job ?: throw ApiException.ServerError(envelope.error ?: "Trabajo no encontrado")
     }
 
     suspend fun listJobs(limit: Int = 50, baseUrl: String? = null): List<JobDto> {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(baseUrl ?: settings.serverUrl)
-        return getJson<JobsEnvelope>(endpoint(base, "jobs") + "&limit=$limit", settings.apiToken, base).jobs
+        return getJson<JobsEnvelope>(endpoint(base, "jobs") + "&limit=$limit", settings.apiTokenForRequests, base).jobs
     }
 
     suspend fun cancelJob(jobId: String) {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
         runCatching {
-            postJson<SimpleResponse>(endpoint(base, "job-cancel"), settings.apiToken, jsonBody("id" to jobId), base)
+            postJson<SimpleResponse>(endpoint(base, "job-cancel"), settings.apiTokenForRequests, jsonBody("id" to jobId), base)
         }
     }
 
     suspend fun retryJob(jobId: String): JobDto {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
-        val envelope = postJson<JobEnvelope>(endpoint(base, "job-retry"), settings.apiToken, jsonBody("id" to jobId), base)
+        val envelope = postJson<JobEnvelope>(endpoint(base, "job-retry"), settings.apiTokenForRequests, jsonBody("id" to jobId), base)
         return envelope.job ?: throw ApiException.ServerError(envelope.error ?: "No se pudo reintentar")
     }
 
@@ -267,7 +280,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
         runCatching {
-            postJson<SimpleResponse>(endpoint(base, "job-delete"), settings.apiToken, jsonBody("id" to jobId), base)
+            postJson<SimpleResponse>(endpoint(base, "job-delete"), settings.apiTokenForRequests, jsonBody("id" to jobId), base)
         }
     }
 
@@ -275,7 +288,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
         runCatching {
-            postJson<SimpleResponse>(endpoint(base, "job-cancel-all"), settings.apiToken, "{}", base)
+            postJson<SimpleResponse>(endpoint(base, "job-cancel-all"), settings.apiTokenForRequests, "{}", base)
         }
     }
 
@@ -285,7 +298,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
         val suffix = if (query.isBlank()) "" else "&q=" + java.net.URLEncoder.encode(query, "UTF-8")
-        return getJson<LibraryEnvelope>(endpoint(base, "library") + suffix, settings.apiToken, base).items
+        return getJson<LibraryEnvelope>(endpoint(base, "library") + suffix, settings.apiTokenForRequests, base).items
     }
 
     suspend fun deleteLibraryItem(file: String) {
@@ -293,7 +306,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         val base = normalizeBaseUrl(settings.serverUrl)
         val response = postJson<SimpleResponse>(
             endpoint(base, "library-delete"),
-            settings.apiToken,
+            settings.apiTokenForRequests,
             jsonBody("file" to file),
             base,
         )
@@ -303,7 +316,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
     suspend fun temporaryFiles(): List<TemporaryFileDto> {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
-        return getJson<TemporaryEnvelope>(endpoint(base, "temporary"), settings.apiToken, base).items
+        return getJson<TemporaryEnvelope>(endpoint(base, "temporary"), settings.apiTokenForRequests, base).items
     }
 
     suspend fun deleteTemporaryFile(file: String) {
@@ -311,7 +324,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         val base = normalizeBaseUrl(settings.serverUrl)
         val response = postJson<SimpleResponse>(
             endpoint(base, "temporary-delete"),
-            settings.apiToken,
+            settings.apiTokenForRequests,
             jsonBody("file" to file),
             base,
         )
@@ -321,7 +334,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
     suspend fun cleanup(): SimpleResponse {
         val settings = settingsProvider()
         val base = normalizeBaseUrl(settings.serverUrl)
-        return postJson(endpoint(base, "cleanup"), settings.apiToken, "{}", base)
+        return postJson(endpoint(base, "cleanup"), settings.apiTokenForRequests, "{}", base)
     }
 
     fun fileUrl(name: String): String {
@@ -337,7 +350,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
     }
 
     private fun tokenQuery(settings: AppSettings): String =
-        if (settings.apiToken.isBlank()) "" else "&token=" + java.net.URLEncoder.encode(settings.apiToken, "UTF-8")
+        if (settings.apiTokenForRequests.isBlank()) "" else "&token=" + java.net.URLEncoder.encode(settings.apiTokenForRequests, "UTF-8")
 
     // ---------------------------------------------------------------- live progress
 
@@ -350,7 +363,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
             .url(url)
             .header("Accept", "text/event-stream")
             .header("Cache-Control", "no-cache")
-            .authorize(settings.apiToken)
+            .authorize(settings.apiTokenForRequests)
             .get()
             .build()
         val call: Call = sseClient.newCall(request)
@@ -384,7 +397,7 @@ class ReelDropApi(private val settingsProvider: () -> AppSettings) {
         val base = normalizeBaseUrl(settings.serverUrl)
         val request = Request.Builder()
             .url(endpoint(base, "download-stream"))
-            .authorize(settings.apiToken)
+            .authorize(settings.apiTokenForRequests)
             .header("Accept", "text/event-stream")
             .post(jsonBody("url" to url).toRequestBody(jsonMediaType))
             .build()

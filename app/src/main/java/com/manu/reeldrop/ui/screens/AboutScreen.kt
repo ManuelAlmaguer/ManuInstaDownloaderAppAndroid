@@ -224,7 +224,7 @@ fun AboutScreen(
                 }
                 Spacer(Modifier.height(8.dp))
                 InfoLine("Dirección", settings.serverUrl)
-                InfoLine("Token", if (settings.apiToken.isBlank()) "sin token" else "configurado")
+                InfoLine("Token", if (settings.apiTokenForRequests.isBlank()) "desactivado" else "activo")
                 InfoLine("Versión servidor", health.version ?: "—")
                 InfoLine("yt-dlp", health.ytDlpVersion ?: if (health.reachable) "no detectado" else "—")
                 InfoLine("ffmpeg", if (health.ffmpegAvailable) "disponible" else "no detectado")

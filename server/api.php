@@ -6,7 +6,7 @@ declare(strict_types=1);
  *
  * One entry point, one action per request:
  *
- *   health, job-create, job, jobs, events, job-cancel, job-retry, job-delete,
+ *   health, analyze, job-create, job, jobs, events, job-cancel, job-retry, job-delete,
  *   job-cancel-all, library, library-delete, file, thumb, cleanup
  *   temporary, temporary-delete
  *
@@ -39,7 +39,7 @@ switch ($action) {
         reeldrop_json([
             'ok' => true,
             'app' => 'Manu ReelDrop Server',
-            'version' => (string) reeldrop_config_value('app_version', '2.1.0'),
+            'version' => (string) reeldrop_config_value('app_version', '2.2.0'),
             'ytdlp' => $ytdlp,
             'ytdlp_version' => reeldrop_binary_version($ytdlp),
             'ffmpeg' => reeldrop_ffmpeg() !== null,
@@ -54,6 +54,22 @@ switch ($action) {
             'time' => time(),
             'message' => $ytdlp === null ? 'yt-dlp no está instalado: ejecuta pkg install python && pip install -U yt-dlp' : null,
         ]);
+
+    // --------------------------------------------------------------- analysis
+    case 'analyze':
+        $body = reeldrop_request_body();
+        $url = trim((string) ($body['url'] ?? reeldrop_param('url', '')));
+        if (!reeldrop_is_allowed_url($url)) {
+            reeldrop_error('Solo se permiten enlaces de Instagram, YouTube o Facebook.', 400);
+        }
+        if (reeldrop_ytdlp() === null) {
+            reeldrop_error('yt-dlp no está instalado en el servidor.', 503);
+        }
+        $info = reeldrop_analyze_url($url);
+        if ($info === null) {
+            reeldrop_error('No se pudo analizar el enlace. Comprueba yt-dlp, cookies y conectividad.', 422);
+        }
+        reeldrop_json(['ok' => true, 'media' => reeldrop_analysis_payload($info)]);
 
     // ------------------------------------------------------------------ jobs
     case 'job-create':
@@ -285,6 +301,21 @@ function reeldrop_job_payload(array $job): array
         }
     }
     return $job;
+}
+
+/** Reduces the large yt-dlp metadata response to what the Android picker needs. */
+function reeldrop_analysis_payload(array $info): array
+{
+    return [
+        'id' => isset($info['id']) ? (string) $info['id'] : null,
+        'title' => isset($info['title']) ? (string) $info['title'] : null,
+        'author' => isset($info['uploader']) ? (string) $info['uploader'] : (
+            isset($info['channel']) ? (string) $info['channel'] : null
+        ),
+        'thumbnail' => isset($info['thumbnail']) ? (string) $info['thumbnail'] : null,
+        'duration' => isset($info['duration']) ? (float) $info['duration'] : null,
+        'qualities' => reeldrop_quality_options($info),
+    ];
 }
 
 /** Streams a job through SSE until it reaches a terminal state. */

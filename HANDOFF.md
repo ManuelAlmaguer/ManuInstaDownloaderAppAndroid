@@ -21,7 +21,7 @@ git push origin main
 ```
 
 Nunca dejes cambios importantes solo en local. Si el APK cambia, súbelo otra vez y publica una
-release nueva (la siguiente es v1.1.0).
+release nueva (la siguiente es v1.2.0).
 
 ---
 
@@ -35,7 +35,7 @@ notificaciones, temas y configuración avanzada.
 * **Nombre visible:** Manu ReelDrop. Se conserva el paquete `com.manu.reeldrop` y la ruta
   `Movies/ReelDrop` para compatibilidad.
 * **Paquete Android:** `com.manu.reeldrop` (debug: `com.manu.reeldrop.debug`).
-* **Versión de código:** 1.1.0 (versionCode 2); los APK v1.1.0 se generan en CI y se conservan junto a la referencia 1.0.0.
+* **Versión de código:** 1.2.0 (versionCode 3); los APK v1.2.0 se generan en CI y se conservan junto a las referencias 1.1.0 y 1.0.0.
 * **Autor:** Manuel Almaguer Sosa · manu004@atomicmail.io.
 
 ---
@@ -46,9 +46,9 @@ notificaciones, temas y configuración avanzada.
 |---|---|
 | Análisis de la web original (zip) | Hecho (index.php, api.php, style.css, app.js) |
 | Proyecto Android completo | Hecho (≈40 archivos Kotlin, recursos, temas, tests) |
-| Servidor PHP 2.0 con cola de trabajos | Hecho (api.php, lib/*, panel web, instalador) |
-| APK debug compilado y verificado | `release/ManuReelDrop-v1.1.0-debug.apk`, generado por CI |
-| APK release firmado | `release/ManuReelDrop-v1.1.0.apk`, generado por CI; se conserva la referencia 1.0.0 |
+| Servidor PHP 2.2.0 con cola de trabajos y análisis dinámico | Hecho (api.php, lib/*, panel web, instalador) |
+| APK debug compilado y verificado | `release/ManuReelDrop-v1.2.0-debug.apk`, generado por CI |
+| APK release firmado | `release/ManuReelDrop-v1.2.0.apk`, generado por CI; se conservan las referencias 1.1.0 y 1.0.0 |
 | README + docs + HANDOFF | Hecho |
 | Publicado en `main` | Hecho (ver historial de commits) |
 
@@ -58,30 +58,40 @@ notificaciones, temas y configuración avanzada.
   pegado desde el portapapeles y recepción por *share*; selector de calidad; cola de descargas
   con progreso, velocidad, ETA y tamaño; biblioteca con miniaturas, reproductor Media3,
   guardado en el dispositivo y borrado remoto; ajustes completos; pantalla *Acerca de*.
+* **Selector dinámico de calidad**: primero analiza el enlace en el servidor, muestra las alturas
+  realmente disponibles y conserva Mejor calidad como opción fallback; la descarga empieza solo
+  después de elegir una opción.
 * **Motor de descargas**: cola persistente (JSON atómico), concurrencia configurable, SSE con
   *fallback* a polling, reintentos con backoff exponencial + jitter, modo compatible con el
   `api.php` antiguo y auto-guardado en el dispositivo o en una carpeta SAF elegida por el
   usuario.
 * **Notificaciones**: servicio en primer plano y una única tarjeta de progreso agrupada para toda
   la cola, con velocidad, tamaño, ETA y acción de cancelar; resultado reutilizable (abrir/reintentar)
-  y canales independientes para evitar tarjetas duplicadas o acumuladas. La tarjeta de descargas
-  usa bloques visuales etiquetados y descarta las líneas compactas heredadas del servidor.
+  y canales independientes para evitar tarjetas duplicadas o acumuladas. Progreso, servicio inactivo,
+  éxito y error usan jerarquía visual, estados etiquetados y detalles legibles; se descartan las
+  líneas compactas heredadas del servidor.
 * **Termux**: la tarjeta del servidor incluye un botón para abrir la aplicación Termux. Por las
   restricciones de Android, el botón abre la actividad de Termux pero no ejecuta start.sh en
   segundo plano.
 * **Biblioteca**: pestañas para servidor, carpeta del teléfono y temporales; estos últimos se
   consultan y eliminan mediante `temporary`/`temporary-delete` sin bloquear el hilo visual.
+  Toda eliminación o limpieza muestra confirmación antes de ejecutarse.
 * **Temas**: 12 paletas + claro/oscuro/automático + Material You; el selector se muestra en
   cuadrícula vertical para que todas las paletas sean visibles sin depender del desplazamiento
   horizontal.
+* **Red y preferencias**: el checkbox de token mantiene el campo oculto mientras no se usa;
+  «Solo por Wi-Fi» deja las descargas en espera con datos móviles y las reanuda al recuperar Wi-Fi.
+  El monitor comprueba el servidor cada 5 segundos conectado y redescubre cada 10 segundos si se
+  pierde.
 * **Permisos**: sección propia con estado, petición individual o masiva y acceso a los ajustes
   del sistema (incluida la exención de batería).
 * **Servidor**: acepta hosts de Instagram, YouTube y Facebook mediante `allowed_hosts` (incluidos
   automáticamente al migrar configuraciones antiguas); acciones
-  `health`, `job-create`, `job`, `jobs`, `events`, `job-cancel`,
-  `job-retry`, `job-delete`, `job-cancel-all`, `library`, `library-delete`, `file` (con
-  rangos HTTP), `thumb`, `temporary`, `temporary-delete`, `cleanup` y compatibilidad total con
-  la API antigua.
+  `health`, `analyze`, `job-create`, `job`, `jobs`,
+  `events`, `job-cancel`, `job-retry`, `job-delete`,
+  `job-cancel-all`, `library`, `library-delete`, `file` (con
+  rangos HTTP), `thumb`, `temporary`, `temporary-delete`,
+  `cleanup` y compatibilidad total con la API antigua.
 
 ---
 
@@ -122,7 +132,7 @@ curl "http://127.0.0.1:8080/api.php?action=health"
 
 ## 5. Pendientes y siguientes pasos (por orden sugerido)
 
-1. **Probar en el móvil real**: instalar el APK 1.1.0 generado por CI, configurar el servidor y completar una
+1. **Probar en el móvil real**: instalar el APK 1.2.0 generado por CI, configurar el servidor y completar una
    descarga (progreso, notificación y biblioteca).
 2. **Código QR de configuración**: generar en `start.sh`/panel web un QR con `base_url` +
    token para configurar la app sin escribir nada.
@@ -133,7 +143,7 @@ curl "http://127.0.0.1:8080/api.php?action=health"
 6. **Widget de Android** con últimas descargas y acceso rápido.
 7. **Estadísticas** en *Acerca de*: total descargado, velocidad media, tiempo ahorrado.
 8. **Tests de instrumentación** (Compose UI tests) para home, cola y biblioteca.
-9. **Publicar el APK 1.1.0** generado por CI como nueva release de GitHub cuando se valide en un móvil.
+9. **Publicar el APK 1.2.0** generado por CI como nueva release de GitHub cuando se valide en un móvil.
 10. **Repaso de textos**: ya hay `values` (inglés) y `values-es`; revisar traducciones nuevas.
 
 ---

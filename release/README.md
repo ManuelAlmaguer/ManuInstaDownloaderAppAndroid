@@ -1,12 +1,14 @@
 # APK de Manu ReelDrop
 
-Los APK v1.1.0 fueron generados y verificados por GitHub Actions. La versión 1.0.0 se conserva
-como referencia para instalaciones anteriores.
+Los APK v1.2.0 fueron generados y verificados por GitHub Actions. Las versiones 1.1.0 y 1.0.0
+se conservan como referencias para instalaciones anteriores.
 
 | Archivo | Para qué |
 |---|---|
-| `ManuReelDrop-v1.1.0.apk` | Versión de release, firmada. Es la recomendada para instalar. |
-| `ManuReelDrop-v1.1.0-debug.apk` | Build de depuración (más pesada). Útil para probar cambios. |
+| `ManuReelDrop-v1.2.0.apk` | Versión de release, firmada. Es la recomendada para instalar. |
+| `ManuReelDrop-v1.2.0-debug.apk` | Build de depuración (más pesada). Útil para probar cambios. |
+| `ManuReelDrop-v1.1.0.apk` | Release anterior conservada como referencia. |
+| `ManuReelDrop-v1.1.0-debug.apk` | Debug anterior conservado como referencia. |
 | `ReelDrop-v1.0.0.apk` | Release histórica conservada para instalaciones anteriores. |
 | `ReelDrop-v1.0.0-debug.apk` | Debug histórico conservado para comparación. |
 
@@ -17,7 +19,8 @@ como referencia para instalaciones anteriores.
 3. Al abrir Manu ReelDrop por primera vez, concede los permisos que solicite
    (notificaciones, videos/audio y descargas en segundo plano).
 4. Ve a **Ajustes → Servidor**, elige dónde está tu servidor y pega la dirección
-   (`http://127.0.0.1:8080` si usas Termux en este mismo móvil) y el token de API.
+   (`http://127.0.0.1:8080` si usas Termux en este mismo móvil). Activa **Usar token de API**
+   únicamente si el servidor lo requiere.
 
 ## Firma
 
@@ -36,6 +39,6 @@ keytool -genkeypair -v -keystore mi-keystore.jks -alias reeldrop \
 
 ```bash
 ./gradlew assembleRelease
-cp app/build/outputs/apk/release/app-release.apk release/ManuReelDrop-v1.1.0.apk
-git add -A && git commit -m "Publicar APK Manu ReelDrop v1.1.0" && git push origin main
+cp app/build/outputs/apk/release/app-release.apk release/ManuReelDrop-v1.2.0.apk
+git add -A && git commit -m "Publicar APK Manu ReelDrop v1.2.0" && git push origin main
 ```
