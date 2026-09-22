@@ -66,9 +66,14 @@ notificaciones, temas y configuración avanzada.
   la cola, con velocidad, tamaño, ETA y acción de cancelar; resultado reutilizable (abrir/reintentar)
   y canales independientes para evitar tarjetas duplicadas o acumuladas. La tarjeta de descargas
   usa bloques visuales etiquetados y descarta las líneas compactas heredadas del servidor.
+* **Termux**: la tarjeta del servidor incluye un botón para abrir la aplicación Termux. Por las
+  restricciones de Android, el botón abre la actividad de Termux pero no ejecuta start.sh en
+  segundo plano.
 * **Biblioteca**: pestañas para servidor, carpeta del teléfono y temporales; estos últimos se
   consultan y eliminan mediante `temporary`/`temporary-delete` sin bloquear el hilo visual.
-* **Temas**: 12 paletas + claro/oscuro/automático + Material You.
+* **Temas**: 12 paletas + claro/oscuro/automático + Material You; el selector se muestra en
+  cuadrícula vertical para que todas las paletas sean visibles sin depender del desplazamiento
+  horizontal.
 * **Permisos**: sección propia con estado, petición individual o masiva y acceso a los ajustes
   del sistema (incluida la exención de batería).
 * **Servidor**: acepta hosts de Instagram, YouTube y Facebook mediante `allowed_hosts` (incluidos

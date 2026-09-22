@@ -260,6 +260,9 @@ cd ManuInstaDownloaderAppAndroid
 * **¿Dónde está tu servidor?** Mismo móvil / Red local / Internet.
 * **Dirección del servidor**: por ejemplo `http://127.0.0.1:8080`.
 * **Token de API**: el que generó `setup-termux.sh`.
+* **Abrir Termux**: desde la tarjeta del servidor puedes abrir la aplicación rápidamente. Android
+  puede mostrar Termux en primer plano; la app no ejecuta comandos ni inicia PHP de forma
+  silenciosa por las restricciones de seguridad del sistema.
 * **Guardar y probar**: guarda y muestra latencia, versión del servidor, versión de yt-dlp,
   ffmpeg y espacio libre.
 * **Buscar**: prueba loopback, tu IP de Wi-Fi y barre la subred local en los puertos 8080/9000.
@@ -303,6 +306,10 @@ cd ManuInstaDownloaderAppAndroid
 ## 9. Temas visuales
 
 Disponibles en **Ajustes → Temas**, se aplican al instante:
+
+La app incluye **12 estilos** y ahora los muestra en una cuadrícula vertical para que no parezca
+que solo existen los primeros tres: Neón Púrpura, Medianoche AMOLED, Océano, Atardecer, Bosque,
+Chicle, Cereza, Ártico, Aurora, Grafito, Color dinámico y Sistema.
 
 | Tema | Estilo |
 |---|---|

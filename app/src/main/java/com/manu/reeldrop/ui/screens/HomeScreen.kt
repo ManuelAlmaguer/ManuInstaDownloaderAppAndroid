@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ContentPasteGo
 import androidx.compose.material.icons.outlined.Link
@@ -40,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +76,7 @@ import com.manu.reeldrop.ui.components.GradientButton
 import com.manu.reeldrop.ui.components.ProgressRing
 import com.manu.reeldrop.ui.components.StatChip
 import com.manu.reeldrop.ui.theme.LocalReelPalette
+import com.manu.reeldrop.util.TermuxLauncher
 import com.manu.reeldrop.util.UrlUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -219,6 +222,18 @@ class HomeViewModel(private val app: Application) : AndroidViewModel(app) {
                 )
             }
         }
+    }
+
+    fun openTermux() {
+        val opened = TermuxLauncher.open(app)
+        _state.value = _state.value.copy(
+            message = if (opened) {
+                "Termux abierto. Ejecuta ./start.sh para iniciar el servidor."
+            } else {
+                "Termux no está instalado o no se puede abrir desde este dispositivo."
+            },
+            messageIsError = !opened,
+        )
     }
 
     private fun refreshLibraryCount() {
@@ -395,7 +410,14 @@ fun HomeScreen(
             }
         }
 
-        item { ServerCard(state, onDiscover = viewModel::discoverServer, onOpenSettings = onOpenSettings) }
+        item {
+            ServerCard(
+                state,
+                onDiscover = viewModel::discoverServer,
+                onOpenSettings = onOpenSettings,
+                onOpenTermux = viewModel::openTermux,
+            )
+        }
 
         item {
             GlassCard {
@@ -488,7 +510,12 @@ private fun BrandHeader(state: HomeUiState, onOpenSettings: () -> Unit, onRefres
 }
 
 @Composable
-private fun ServerCard(state: HomeUiState, onDiscover: () -> Unit, onOpenSettings: () -> Unit) {
+private fun ServerCard(
+    state: HomeUiState,
+    onDiscover: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenTermux: () -> Unit,
+) {
     val palette = LocalReelPalette.current
     GlassCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -530,16 +557,16 @@ private fun ServerCard(state: HomeUiState, onDiscover: () -> Unit, onOpenSetting
                 shape = RoundedCornerShape(12.dp),
                 color = palette.accent.copy(alpha = 0.14f),
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)),
-                onClick = onDiscover,
+                onClick = onOpenTermux,
             ) {
                 Row(
                     Modifier.padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.Search, contentDescription = null, tint = palette.accent, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = palette.accent, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Buscar servidor", style = MaterialTheme.typography.labelLarge, color = palette.accent)
+                    Text("Abrir Termux", style = MaterialTheme.typography.labelLarge, color = palette.accent)
                 }
             }
             Surface(
@@ -558,6 +585,14 @@ private fun ServerCard(state: HomeUiState, onDiscover: () -> Unit, onOpenSetting
                     Text("Configurar", style = MaterialTheme.typography.labelLarge)
                 }
             }
+        }
+        TextButton(
+            onClick = onDiscover,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(17.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Buscar servidor automáticamente")
         }
     }
 }

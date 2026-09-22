@@ -461,32 +461,49 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(10.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(Palettes.all) { theme ->
-                        val selected = settings.themeId == theme.theme.id
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            onClick = { viewModel.update { it.copy(themeId = theme.theme.id) } },
-                            modifier = Modifier.width(132.dp),
+                Text(
+                    Palettes.all.size.toString() + " estilos disponibles",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.accent,
+                )
+                Spacer(Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Palettes.all.chunked(2).forEach { rowThemes ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(42.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Brush.linearGradient(theme.gradient)),
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    theme.label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (selected) palette.accent else MaterialTheme.colorScheme.onSurface,
-                                )
-                                if (selected) {
-                                    Text("Aplicado", style = MaterialTheme.typography.labelSmall, color = palette.accent)
+                            rowThemes.forEach { theme ->
+                                val selected = settings.themeId == theme.theme.id
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (selected) palette.accent.copy(alpha = 0.12f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    onClick = { viewModel.update { it.copy(themeId = theme.theme.id) } },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Column(Modifier.padding(10.dp)) {
+                                        Box(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .height(42.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Brush.linearGradient(theme.gradient)),
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            theme.label,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (selected) palette.accent else MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        if (selected) {
+                                            Text("Aplicado", style = MaterialTheme.typography.labelSmall, color = palette.accent)
+                                        }
+                                    }
                                 }
+                            }
+                            if (rowThemes.size == 1) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
                     }
