@@ -50,6 +50,7 @@ notificaciones, temas y configuración avanzada.
 | Paquete de servidor para entregar | `release/ManuReelDrop-server-v2.2.0.zip`, sin `data/`, `downloads/` ni `logs/` |
 | APK debug compilado y verificado | `release/ManuReelDrop-v1.2.0-debug.apk`, generado por CI |
 | APK release firmado | `release/ManuReelDrop-v1.2.0.apk`, generado por CI; se conservan las referencias 1.1.0 y 1.0.0 |
+| Validación técnica | `testDebugUnitTest`, `assembleDebug`, `assembleRelease`, lint PHP y comprobación de opciones de calidad; CI Android correcto |
 | README + docs + HANDOFF | Hecho |
 | Publicado en `main` | Hecho (ver historial de commits) |
 
@@ -159,6 +160,8 @@ curl "http://127.0.0.1:8080/api.php?action=health"
   personal, no para publicar en Play Store.
 * Las IP locales cambian (DHCP): si el servidor está en otro equipo, revisa la dirección o usa
   **Buscar**.
+* La lógica de **Solo por Wi-Fi** quedó validada en código, tests y compilación; falta alternar
+  físicamente entre datos móviles y Wi-Fi en un teléfono Android para completar la prueba de radio.
 
 ---
 
